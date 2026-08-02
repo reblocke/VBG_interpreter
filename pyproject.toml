@@ -59,7 +59,7 @@ select = ["E", "F", "I", "UP", "B"]
 known-first-party = ["vbg_interpreter"]
 
 [tool.uv]
-required-version = "==0.11.11"
+required-version = ">=0.11.8,<0.12"
 build-constraint-dependencies = [
   "setuptools==83.0.0",
   "wheel==0.47.0",
