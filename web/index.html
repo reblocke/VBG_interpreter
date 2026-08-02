@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; worker-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; media-src 'none'; manifest-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>VBG Acid–Base Explorer</title>
+    <meta
+      name="description"
+      content="A client-side, research-only explorer for venous acid–base measurements, candidate arterial state space, chemistry context, and explicit uncertainty."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./bootstrap.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="title-block">
+        <p class="eyebrow">Research / educational software</p>
+        <h1>VBG Acid–Base Explorer</h1>
+        <p class="lede">
+          Keep the measured venous gas, chemistry, candidate arterial region, and modeled
+          acid–base states separate. The Explorer displays uncertainty; it does not convert a VBG
+          into an ABG.
+        </p>
+        <p class="header-link">
+          Working with an arterial sample?
+          <a href="https://reblocke.github.io/stewart-light/" rel="noopener noreferrer">
+            Open the upstream Stewart Light ABG calculator
+          </a>
+        </p>
+      </div>
+
+      <aside class="runtime-card" aria-labelledby="runtime-heading">
+        <p class="eyebrow">Local runtime</p>
+        <h2 id="runtime-heading">Python engine</h2>
+        <p id="runtime-status" data-state="loading">Loading the interpretation engine.</p>
+        <button id="retry-engine" class="button secondary" type="button" hidden>
+          Retry engine
+        </button>
+      </aside>
+    </header>
+
+    <main id="main-content" class="page-shell" tabindex="-1">
+      <section class="notice research-notice" aria-labelledby="research-heading">
+        <div>
+          <p class="eyebrow">Scope boundary</p>
+          <h2 id="research-heading">For research and education only</h2>
+        </div>
+        <p>
+          This implementation is not clinically validated, is not medical advice, and must not be
+          used to diagnose, treat, or replace an arterial blood gas when arterial confirmation is
+          required. It never estimates arterial oxygenation, tissue hypoxia, or oxygen extraction.
+        </p>
+      </section>
+
+      <section class="notice privacy-notice" aria-labelledby="privacy-heading">
+        <div>
+          <p class="eyebrow">Client-side by design</p>
+          <h2 id="privacy-heading">Use synthetic values only</h2>
+        </div>
+        <p>
+          Calculations run in this browser. Values are not placed in the URL, stored locally, sent
+          to analytics, or submitted to a calculation server. Loading the page and Python runtime
+          makes ordinary same-origin hosting requests.
+        </p>
+      </section>
+
+      <p
+        id="assistive-status"
+        class="visually-hidden"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      ></p>
+
+      <div class="workspace-grid">
+        <section class="panel input-panel" aria-labelledby="input-heading">
+          <div class="section-heading">
+            <p class="eyebrow">Inputs</p>
+            <h2 id="input-heading">Current venous gas and chemistry</h2>
+            <p>
+              Required source measurements are interpreted as entered. Optional information only
+              enables the corresponding modeled or contextual lane.
+            </p>
+          </div>
+
+          <form id="explorer-form" aria-labelledby="input-heading" novalidate>
+            <fieldset>
+              <legend>Current venous blood gas</legend>
+              <div class="field-grid">
+                <label for="current-ph">
+                  <span>Measured venous pH</span>
+                  <input
+                    id="current-ph"
+                    name="current_ph"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    required
+                  />
+                </label>
+                <label for="current-pco2">
+                  <span>Measured PvCO<sub>2</sub></span>
+                  <input
+                    id="current-pco2"
+                    name="current_pco2"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    required
+                  />
+                </label>
+                <label for="current-pco2-unit">
+                  <span>PvCO<sub>2</sub> unit</span>
+                  <select id="current-pco2-unit" name="current_pco2_unit">
+                    <option value="mmHg">mmHg</option>
+                    <option value="kPa">kPa</option>
+                  </select>
+                </label>
+                <label for="specimen-type">
+                  <span>Specimen type</span>
+                  <select id="specimen-type" name="specimen_type">
+                    <option value="UNKNOWN">Unknown</option>
+                    <option value="PERIPHERAL_VENOUS">Peripheral venous</option>
+                    <option value="CENTRAL_VENOUS">Central venous</option>
+                    <option value="MIXED_VENOUS">Mixed venous</option>
+                    <option value="CAPILLARY">Capillary</option>
+                  </select>
+                </label>
+                <label for="draw-site">
+                  <span>Draw site</span>
+                  <select id="draw-site" name="draw_site">
+                    <option value="UNKNOWN">Unknown</option>
+                    <option value="UPPER_EXTREMITY_PERIPHERAL">Upper-extremity peripheral</option>
+                    <option value="LOWER_EXTREMITY_PERIPHERAL">Lower-extremity peripheral</option>
+                    <option value="FEMORAL">Femoral</option>
+                    <option value="CENTRAL_CATHETER">Central catheter</option>
+                    <option value="PULMONARY_ARTERY_CATHETER">Pulmonary artery catheter</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </label>
+              </div>
+              <p class="field-note">
+                PvCO<sub>2</sub> remains a measured venous value. It is never relabeled as
+                PaCO<sub>2</sub> or passed directly to arterial Boston logic.
+              </p>
+            </fieldset>
+
+            <fieldset>
+              <legend>Current chemistry</legend>
+              <div class="field-grid">
+                <label for="sodium">
+                  <span>Sodium <small>mmol/L</small></span>
+                  <input id="sodium" name="sodium" inputmode="decimal" autocomplete="off" required />
+                </label>
+                <label for="chloride">
+                  <span>Chloride <small>mmol/L</small></span>
+                  <input
+                    id="chloride"
+                    name="chloride"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    required
+                  />
+                </label>
+                <label for="serum-total-co2">
+                  <span>Serum total CO<sub>2</sub> <small>mmol/L</small></span>
+                  <input
+                    id="serum-total-co2"
+                    name="serum_total_co2"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    required
+                  />
+                </label>
+              </div>
+              <p class="field-note">
+                Serum total CO<sub>2</sub> is retained as chemistry context; it is not silently
+                treated as blood-gas bicarbonate.
+              </p>
+            </fieldset>
+
+            <details class="optional-group" id="optional-current-details">
+              <summary>Optional current measurements</summary>
+              <div class="details-body">
+                <fieldset>
+                  <legend>Reported gas values</legend>
+                  <div class="field-grid">
+                    <label for="current-hco3">
+                      <span>HCO<sub>3</sub> <small>mmol/L</small></span>
+                      <input
+                        id="current-hco3"
+                        name="current_hco3"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </label>
+                    <label for="hco3-basis">
+                      <span>HCO<sub>3</sub> basis</span>
+                      <select id="hco3-basis" name="hco3_basis">
+                        <option value="REPORTED">Reported by analyzer</option>
+                        <option value="CALCULATED">Calculated</option>
+                      </select>
+                    </label>
+                    <label for="base-excess">
+                      <span>Venous base excess <small>mmol/L</small></span>
+                      <input
+                        id="base-excess"
+                        name="base_excess"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Same-sample venous oxygen saturation</legend>
+                  <div class="field-grid">
+                    <label for="venous-saturation">
+                      <span>Measured venous O<sub>2</sub> saturation</span>
+                      <input
+                        id="venous-saturation"
+                        name="venous_saturation"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </label>
+                    <label for="venous-saturation-unit">
+                      <span>Saturation unit</span>
+                      <select id="venous-saturation-unit" name="venous_saturation_unit">
+                        <option value="PERCENTAGE_POINTS">Percentage points (%)</option>
+                        <option value="FRACTION_0_TO_1">Fraction (0 to 1)</option>
+                      </select>
+                    </label>
+                  </div>
+                  <p class="field-note">
+                    The unit is explicit: 1 percentage point means 1%, while 0.75 as a fraction
+                    means 75%. Arterial saturation or pulse oximetry is not a substitute.
+                  </p>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Additional chemistry</legend>
+                  <div class="field-grid">
+                    <label for="albumin">
+                      <span>Albumin <small>g/L</small></span>
+                      <input id="albumin" name="albumin" inputmode="decimal" autocomplete="off" />
+                    </label>
+                    <label for="lactate">
+                      <span>Lactate <small>mmol/L</small></span>
+                      <input id="lactate" name="lactate" inputmode="decimal" autocomplete="off" />
+                    </label>
+                    <label for="chemistry-relationship">
+                      <span>Relationship to VBG</span>
+                      <select id="chemistry-relationship" name="chemistry_relationship">
+                        <option value="UNKNOWN">Unknown</option>
+                        <option value="SAME_CLINICAL_TIMEPOINT">Same clinical timepoint</option>
+                        <option value="DIFFERENT_TIMEPOINT">Different timepoint</option>
+                      </select>
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+            </details>
+
+            <details class="optional-group" id="context-details">
+              <summary>Optional applicability context</summary>
+              <div class="details-body">
+                <p class="field-note">
+                  Keep “Unknown” when the record cannot support an assessment. Unknown is never
+                  converted into “No.”
+                </p>
+                <div class="field-grid">
+                  <label for="poor-perfusion">
+                    <span>Known poor perfusion or hemodynamic instability?</span>
+                    <select id="poor-perfusion" name="poor_perfusion">
+                      <option value="UNKNOWN">Unknown</option>
+                      <option value="YES">Yes</option>
+                      <option value="NO">No</option>
+                    </select>
+                  </label>
+                  <label for="recent-change">
+                    <span>Recent major ventilation or treatment change?</span>
+                    <select id="recent-change" name="recent_change">
+                      <option value="UNKNOWN">Unknown</option>
+                      <option value="YES">Yes</option>
+                      <option value="NO">No</option>
+                    </select>
+                  </label>
+                  <label for="preanalytic-concern">
+                    <span>Material preanalytic concern?</span>
+                    <select id="preanalytic-concern" name="preanalytic_concern">
+                      <option value="UNKNOWN">Unknown</option>
+                      <option value="YES">Yes</option>
+                      <option value="NO">No</option>
+                    </select>
+                  </label>
+                  <label for="supplemental-oxygen">
+                    <span>Supplemental oxygen at sampling?</span>
+                    <select id="supplemental-oxygen" name="supplemental_oxygen">
+                      <option value="UNKNOWN">Unknown</option>
+                      <option value="YES">Yes</option>
+                      <option value="NO">No</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </details>
+
+            <details class="optional-group" id="prior-details">
+              <summary>Optional prior observation</summary>
+              <div class="details-body">
+                <label class="check-row" for="include-prior">
+                  <input id="include-prior" name="include_prior" type="checkbox" />
+                  <span>Include one comparable prior observation</span>
+                </label>
+
+                <div id="prior-fields" class="conditional-fields" hidden>
+                  <div class="field-grid">
+                    <label for="prior-type">
+                      <span>Observation type</span>
+                      <select id="prior-type" name="prior_type">
+                        <option value="ABG">Arterial blood gas</option>
+                        <option value="VBG">Venous blood gas</option>
+                        <option value="SERUM_TOTAL_CO2">Serum total CO2</option>
+                      </select>
+                    </label>
+                    <label for="prior-elapsed-hours">
+                      <span>Elapsed time <small>hours, if known</small></span>
+                      <input
+                        id="prior-elapsed-hours"
+                        name="prior_elapsed_hours"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </label>
+                    <label for="prior-intervening-change">
+                      <span>Intervening major ventilation or treatment change?</span>
+                      <select id="prior-intervening-change" name="prior_intervening_change">
+                        <option value="UNKNOWN">Unknown</option>
+                        <option value="YES">Yes</option>
+                        <option value="NO">No</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div id="prior-gas-fields">
+                    <div class="field-grid">
+                      <label for="prior-ph">
+                        <span>Prior pH</span>
+                        <input id="prior-ph" name="prior_ph" inputmode="decimal" autocomplete="off" />
+                      </label>
+                      <label for="prior-pco2">
+                        <span>Prior PCO<sub>2</sub></span>
+                        <input
+                          id="prior-pco2"
+                          name="prior_pco2"
+                          inputmode="decimal"
+                          autocomplete="off"
+                        />
+                      </label>
+                      <label for="prior-pco2-unit">
+                        <span>Prior PCO<sub>2</sub> unit</span>
+                        <select id="prior-pco2-unit" name="prior_pco2_unit">
+                          <option value="mmHg">mmHg</option>
+                          <option value="kPa">kPa</option>
+                        </select>
+                      </label>
+                      <label for="prior-hco3">
+                        <span>Prior HCO<sub>3</sub> <small>mmol/L</small></span>
+                        <input
+                          id="prior-hco3"
+                          name="prior_hco3"
+                          inputmode="decimal"
+                          autocomplete="off"
+                        />
+                      </label>
+                      <label for="prior-base-excess">
+                        <span>Prior base excess <small>mmol/L</small></span>
+                        <input
+                          id="prior-base-excess"
+                          name="prior_base_excess"
+                          inputmode="decimal"
+                          autocomplete="off"
+                        />
+                      </label>
+                    </div>
+                    <div id="prior-vbg-source-fields" class="field-grid" hidden>
+                      <label for="prior-specimen-type">
+                        <span>Prior VBG specimen</span>
+                        <select id="prior-specimen-type" name="prior_specimen_type">
+                          <option value="UNKNOWN">Unknown</option>
+                          <option value="PERIPHERAL_VENOUS">Peripheral venous</option>
+                          <option value="CENTRAL_VENOUS">Central venous</option>
+                          <option value="MIXED_VENOUS">Mixed venous</option>
+                          <option value="CAPILLARY">Capillary</option>
+                        </select>
+                      </label>
+                      <label for="prior-draw-site">
+                        <span>Prior VBG draw site</span>
+                        <select id="prior-draw-site" name="prior_draw_site">
+                          <option value="UNKNOWN">Unknown</option>
+                          <option value="UPPER_EXTREMITY_PERIPHERAL">Upper-extremity peripheral</option>
+                          <option value="LOWER_EXTREMITY_PERIPHERAL">Lower-extremity peripheral</option>
+                          <option value="FEMORAL">Femoral</option>
+                          <option value="CENTRAL_CATHETER">Central catheter</option>
+                          <option value="PULMONARY_ARTERY_CATHETER">Pulmonary artery catheter</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div id="prior-chemistry-fields" hidden>
+                    <label for="prior-serum-total-co2">
+                      <span>Prior serum total CO<sub>2</sub> <small>mmol/L</small></span>
+                      <input
+                        id="prior-serum-total-co2"
+                        name="prior_serum_total_co2"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div
+              id="form-errors"
+              class="message error-message"
+              role="alert"
+              tabindex="-1"
+              hidden
+            ></div>
+
+            <div class="action-row">
+              <button id="interpret-button" class="button primary" type="submit" disabled>
+                Interpret research state space
+              </button>
+              <button id="reset-button" class="button secondary" type="button">Reset</button>
+            </div>
+          </form>
+        </section>
+
+        <section
+          id="results-panel"
+          class="panel results-panel"
+          aria-labelledby="results-heading"
+          tabindex="-1"
+        >
+          <div class="section-heading">
+            <p class="eyebrow">Output</p>
+            <h2 id="results-heading">Measured values and modeled possibilities</h2>
+          </div>
+
+          <div id="results-empty" class="empty-state">
+            <p>
+              Enter synthetic values and run the Explorer. Results will keep observed,
+              modeled, calculated, and historical information in distinct sections.
+            </p>
+          </div>
+
+          <div id="results-content" hidden>
+            <article class="result-card interpretation-summary-card" aria-labelledby="interpretation-summary-heading">
+              <p class="result-kicker">Set-valued interpretation</p>
+              <h3 id="interpretation-summary-heading">Interpretation summary</h3>
+              <div id="interpretation-summary"></div>
+            </article>
+
+            <article class="result-card" aria-labelledby="observed-heading">
+              <p class="result-kicker">Observed</p>
+              <h3 id="observed-heading">Measured venous blood gas</h3>
+              <div id="observed-result"></div>
+            </article>
+
+            <article class="result-card" aria-labelledby="candidate-heading">
+              <p class="result-kicker">Modeled — not measured</p>
+              <h3 id="candidate-heading">Candidate arterial region</h3>
+              <div id="candidate-result"></div>
+            </article>
+
+            <article class="result-card state-space-card" aria-labelledby="state-space-heading">
+              <p class="result-kicker">Deterministic state enumeration</p>
+              <h3 id="state-space-heading">Possible acid–base states</h3>
+              <p id="state-space-summary"></p>
+              <div id="feature-conclusions"></div>
+
+              <figure id="state-space-figure" class="state-space-figure" hidden>
+                <svg
+                  id="state-space-plot"
+                  viewBox="0 0 720 390"
+                  role="img"
+                  aria-labelledby="state-space-plot-title state-space-plot-description"
+                >
+                  <title id="state-space-plot-title">Candidate arterial PaCO2 and pH region</title>
+                  <desc id="state-space-plot-description">
+                    A deterministic rectangular candidate region with a display-only categorical
+                    map and modeled point. Exact states are repeated in the table below; cell
+                    area and count are not inference.
+                  </desc>
+                </svg>
+                <figcaption>
+                  The rectangle and display samples explain the certified state space. They are
+                  not a probability or confidence distribution. Area, marker density, and the
+                  number of enumerated states carry no frequency meaning.
+                </figcaption>
+                <ul id="state-space-legend" class="state-space-legend" aria-label="Plot symbols"></ul>
+              </figure>
+
+              <div class="table-scroll" tabindex="0" role="region" aria-label="Possible state table">
+                <table id="state-space-table">
+                  <caption>
+                    Text alternative: all published categorical states discovered by the
+                    certified enumeration
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Chronicity branch</th>
+                      <th scope="col">Acid–base state</th>
+                      <th scope="col">Primary process</th>
+                      <th scope="col">Expected compensation</th>
+                      <th scope="col">Measured vs expected</th>
+                      <th scope="col">Mixed-disorder flag</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="result-card" aria-labelledby="chemistry-heading">
+              <p class="result-kicker">Calculated from current chemistry</p>
+              <h3 id="chemistry-heading">Chemistry context</h3>
+              <div id="chemistry-result"></div>
+            </article>
+
+            <article class="result-card" aria-labelledby="history-heading">
+              <p class="result-kicker">Separate observation</p>
+              <h3 id="history-heading">Longitudinal context</h3>
+              <div id="history-result"></div>
+            </article>
+
+            <article class="result-card" aria-labelledby="boundaries-heading">
+              <p class="result-kicker">Interpretation boundaries</p>
+              <h3 id="boundaries-heading">Limitations and information needs</h3>
+              <div class="two-column-result">
+                <section aria-labelledby="limitations-heading">
+                  <h4 id="limitations-heading">Limitations</h4>
+                  <ul id="limitations-list"></ul>
+                </section>
+                <section aria-labelledby="information-needs-heading">
+                  <h4 id="information-needs-heading">Information that may reduce ambiguity</h4>
+                  <ul id="information-needs-list"></ul>
+                </section>
+              </div>
+            </article>
+
+            <article class="result-card" aria-labelledby="provenance-heading">
+              <p class="result-kicker">Audit trail</p>
+              <h3 id="provenance-heading">Model and evidence provenance</h3>
+              <div id="provenance-result"></div>
+              <details class="raw-result-details">
+                <summary>Complete structured result</summary>
+                <div id="generic-result"></div>
+              </details>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        VBG Acid–Base Explorer · Research and educational use only · Client-side calculations ·
+        No arterial oxygenation inference
+      </p>
+      <p>
+        <a href="https://github.com/reblocke/VBG_interpreter" rel="noopener noreferrer">
+          Source and issue reporting
+        </a>
+        ·
+        <a
+          href="https://github.com/reblocke/VBG_interpreter/blob/main/docs/CLINICAL_SCOPE.md"
+          rel="noopener noreferrer"
+        >
+          Clinical scope
+        </a>
+        ·
+        <a
+          href="https://github.com/reblocke/VBG_interpreter/blob/main/docs/EVIDENCE.md"
+          rel="noopener noreferrer"
+        >
+          Evidence
+        </a>
+        ·
+        <a
+          href="https://github.com/reblocke/VBG_interpreter/blob/main/SECURITY.md"
+          rel="noopener noreferrer"
+        >
+          Security
+        </a>
+        ·
+        <a
+          href="https://github.com/reblocke/VBG_interpreter/blob/main/LICENSE"
+          rel="noopener noreferrer"
+        >
+          License
+        </a>
+        · <a href="./release-manifest.json">Deployed source manifest</a>
+      </p>
+    </footer>
+  </body>
+</html>

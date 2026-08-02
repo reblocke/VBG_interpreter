@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this research software, cite the exact release or commit."
+title: "VBG Acid–Base Explorer"
+type: software
+authors:
+  - family-names: Locke
+    given-names: Brian
+version: 0.1.0
+date-released: 2026-08-02
+repository-code: "https://github.com/reblocke/VBG_interpreter"
+url: "https://reblocke.github.io/VBG_interpreter/"
+license: MIT
+abstract: >-
+  A client-side research and educational explorer that separates observed venous blood-gas
+  findings, serum chemistry, evidence-bounded candidate arterial states, and longitudinal context.

@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security-reporting policy
+    url: https://github.com/reblocke/VBG_interpreter/blob/main/SECURITY.md
+    about: Follow the policy for the current repository state; never disclose security details here.

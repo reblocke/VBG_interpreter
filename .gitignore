@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# uv
+.uv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+.playwright/
+.playwright-artifacts/
+test-results/
+
+# Disposable static Explorer bundle
+/.build/
+
+# Ruff
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+.vscode/
+
+# Local env files
+.env
+.env.*
+
+# Local starter/reference artifacts
+scientific-starter-python-codex-ready.zip

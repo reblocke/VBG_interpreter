@@ -1,0 +1,62 @@
+name: Research software report
+description: Report a reproducible software, documentation, or research-contract issue.
+title: "[Report] "
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include protected health information, direct identifiers, patient-derived rows,
+        protected paths or hashes, screenshots from patient care, credentials, or governed
+        approval documents. Use fictional inputs only.
+
+  - type: checkboxes
+    id: no_sensitive_data
+    attributes:
+      label: Sensitive-data confirmation
+      options:
+        - label: I confirm this report contains no PHI, patient-derived values, credentials, or governed records.
+          required: true
+
+  - type: dropdown
+    id: report_type
+    attributes:
+      label: Report type
+      options:
+        - Software behavior
+        - Documentation or terminology
+        - Scientific or clinical-scope contract
+        - Reproducibility or packaging
+        - Privacy or data-boundary concern
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the issue without sensitive data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Provide commands and fictional inputs only.
+      render: shell
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or release
+      description: Exact Git commit or release identifier, if known.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true

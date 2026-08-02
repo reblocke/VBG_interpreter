@@ -1,0 +1,223 @@
+{
+  "schema_version": "pyodide_vendor_manifest/1.0",
+  "data_classification": "PUBLIC_THIRD_PARTY_SOFTWARE",
+  "component": {
+    "name": "Pyodide",
+    "version": "0.29.3",
+    "python_version": "3.13.2",
+    "delivery_mode": "SAME_ORIGIN_STATIC_CORE_SUBSET"
+  },
+  "release_archive": {
+    "filename": "pyodide-core-0.29.3.tar.bz2",
+    "url": "https://github.com/pyodide/pyodide/releases/download/0.29.3/pyodide-core-0.29.3.tar.bz2",
+    "size_bytes": 5986900,
+    "sha256": "83b764fe1a0ab6a2d76dba035fbef7284e06dac945a958be2d6447eced592f5a",
+    "retrieved_on": "2026-07-31"
+  },
+  "runtime_files": [
+    {
+      "path": "pyodide-lock.json",
+      "role": "package lock required by the core loader",
+      "size_bytes": 120010,
+      "sha256": "3256ffc76388de0e37f4b34d42ab484268d1afc675179ff97b2a5bb14f84ccac"
+    },
+    {
+      "path": "pyodide.asm.js",
+      "role": "Emscripten JavaScript runtime",
+      "size_bytes": 1074322,
+      "sha256": "1263f02b5b26099b96112378156f242dd98b39a8201ba7765e5fe3d455c5ce91"
+    },
+    {
+      "path": "pyodide.asm.wasm",
+      "role": "WebAssembly runtime",
+      "size_bytes": 8647684,
+      "sha256": "e2f4ee75b325e35eb31bfb8c613d4dd5098f5502c156a97847686875b5025480"
+    },
+    {
+      "path": "pyodide.js",
+      "role": "classic-worker loader",
+      "size_bytes": 18597,
+      "sha256": "718d40f1c015dd25ec724cc8fc4e2325d6a45a92ae225121ff6953f224a16f72"
+    },
+    {
+      "path": "python_stdlib.zip",
+      "role": "CPython and Pyodide standard-library archive",
+      "size_bytes": 2423989,
+      "sha256": "4298b6ee445cb724c3973437da47789752b9e6ff4e26619026b283ec801fc46b"
+    }
+  ],
+  "notice_files": [
+    {
+      "path": "COMPONENT-SOURCES.md",
+      "role": "owner-reviewed component, source, and notice inventory",
+      "size_bytes": 3757,
+      "sha256": "b4e228b6b992611adfde5d4d39cc7ec0aca91da94656ae82372adfa3b1f7577e"
+    },
+    {
+      "path": "LICENSE-BZIP2.txt",
+      "role": "bzip2 1.0.6 license copied from the pinned Emscripten port source",
+      "size_bytes": 1895,
+      "sha256": "a04a013cbbb1ff794c0bdf77af4cef040e67583f75bc6cf6d44dda692db7c7a0"
+    },
+    {
+      "path": "LICENSE-CPYTHON-EXPAT.txt",
+      "role": "Expat notice copied from CPython 3.13.2 source",
+      "size_bytes": 1144,
+      "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534"
+    },
+    {
+      "path": "LICENSE-CPYTHON-HACL.txt",
+      "role": "HACL* notice copied from CPython 3.13.2 source",
+      "size_bytes": 1141,
+      "sha256": "328a079d376d3e1e966317c647906004d38d42b7624531456b90ae1b710ddc0c"
+    },
+    {
+      "path": "LICENSE-CPYTHON-LIBMPDEC.txt",
+      "role": "libmpdec notice copied from CPython 3.13.2 source",
+      "size_bytes": 1284,
+      "sha256": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b"
+    },
+    {
+      "path": "LICENSE-CPYTHON.txt",
+      "role": "CPython 3.13.2 source license",
+      "size_bytes": 13809,
+      "sha256": "78b12c3a81360b357002334f0e70ea0e92eebf7a9b358805c03c48484945f3bb"
+    },
+    {
+      "path": "LICENSE-EMSCRIPTEN.txt",
+      "role": "Emscripten 4.0.9 dual MIT and NCSA license",
+      "size_bytes": 5091,
+      "sha256": "2fd38dc06e484cdd7a3f1e2f6577f5d53062052a2fd85131b56b89fbd673731c"
+    },
+    {
+      "path": "LICENSE-LIBFFI.txt",
+      "role": "libffi notice copied from the exact Pyodide-pinned source commit",
+      "size_bytes": 1132,
+      "sha256": "2c9c2acb9743e6b007b91350475308aee44691d96aa20eacef8e199988c8c388"
+    },
+    {
+      "path": "LICENSE-MUSL.txt",
+      "role": "musl copyright notice copied from Emscripten 4.0.9",
+      "size_bytes": 6204,
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af"
+    },
+    {
+      "path": "LICENSE-PYODIDE.txt",
+      "role": "Pyodide 0.29.3 source license",
+      "size_bytes": 16725,
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+    },
+    {
+      "path": "LICENSE-STACKFRAME.txt",
+      "role": "StackFrame notice copied from the Pyodide 0.29.3 source tree",
+      "size_bytes": 1080,
+      "sha256": "899da9d991cb211a3642b84e82a9ae0b4b4e44546fd207e34d7d4ec2eb40f420"
+    },
+    {
+      "path": "LICENSE-ZLIB.txt",
+      "role": "zlib 1.3.1 notice copied from the pinned Emscripten port source",
+      "size_bytes": 1002,
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243"
+    }
+  ],
+  "source_components": [
+    {
+      "component": "Pyodide",
+      "identity": "tag 0.29.3; commit 72e3c78d53a32a76e0aca7443ad24e5cae1042d3",
+      "evidence_url": "https://github.com/pyodide/pyodide/tree/0.29.3",
+      "relationship": "direct runtime",
+      "notice_path": "LICENSE-PYODIDE.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "CPython",
+      "identity": "3.13.2; source archive sha256 b8d79530e3b7c96a5cb2d40d431ddb512af4a563e863728d8713039aa50203f9",
+      "evidence_url": "https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tgz",
+      "relationship": "embedded interpreter and standard library",
+      "notice_path": "LICENSE-CPYTHON.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "Emscripten",
+      "identity": "4.0.9",
+      "evidence_url": "https://github.com/emscripten-core/emscripten/tree/4.0.9",
+      "relationship": "generated bootstrap and statically linked C-library code",
+      "notice_path": "LICENSE-EMSCRIPTEN.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "zlib Emscripten port",
+      "identity": "zlib 1.3.1; Emscripten 4.0.9 port sha512 8c9642495bafd6fad4ab9fb67f09b268c69ff9af0f4f20cf15dfc18852ff1f312bd8ca41de761b3f8d8e90e77d79f2ccacd3d4c5b19e475ecf09d021fdfe9088",
+      "evidence_url": "https://github.com/madler/zlib/tree/v1.3.1",
+      "relationship": "statically linked port",
+      "notice_path": "LICENSE-ZLIB.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "bzip2 Emscripten port",
+      "identity": "bzip2 1.0.6; Emscripten 4.0.9 port sha512 512cbfde5144067f677496452f3335e9368fd5d7564899cb49e77847b9ae7dca598218276637cbf5ec524523be1e8ace4ad36a148ef7f4badf3f6d5a002a4bb2",
+      "evidence_url": "https://github.com/emscripten-ports/bzip2/tree/1.0.6",
+      "relationship": "statically linked port",
+      "notice_path": "LICENSE-BZIP2.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "libffi",
+      "identity": "commit f08493d249d2067c8b3207ba46693dd858f95db3",
+      "evidence_url": "https://github.com/libffi/libffi/tree/f08493d249d2067c8b3207ba46693dd858f95db3",
+      "relationship": "statically linked by the tagged CPython build",
+      "notice_path": "LICENSE-LIBFFI.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "hiwire",
+      "identity": "commit 6a1e67280a15d929ebeceee54a6358c9c8d5f697",
+      "evidence_url": "https://github.com/pyodide/hiwire/tree/6a1e67280a15d929ebeceee54a6358c9c8d5f697",
+      "relationship": "statically linked by the tagged CPython build",
+      "notice_path": "LICENSE-PYODIDE.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "musl libc",
+      "identity": "source bundled by Emscripten 4.0.9",
+      "evidence_url": "https://github.com/emscripten-core/emscripten/blob/4.0.9/system/lib/libc/musl/COPYRIGHT",
+      "relationship": "C library linked by the Emscripten toolchain",
+      "notice_path": "LICENSE-MUSL.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "CPython libmpdec",
+      "identity": "CPython tag v3.13.2",
+      "evidence_url": "https://github.com/python/cpython/tree/v3.13.2/Modules/_decimal/libmpdec",
+      "relationship": "embedded objects injected into libpython",
+      "notice_path": "LICENSE-CPYTHON-LIBMPDEC.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "CPython Expat",
+      "identity": "CPython tag v3.13.2",
+      "evidence_url": "https://github.com/python/cpython/blob/v3.13.2/Modules/expat/COPYING",
+      "relationship": "embedded objects injected into libpython",
+      "notice_path": "LICENSE-CPYTHON-EXPAT.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "CPython HACL*",
+      "identity": "CPython tag v3.13.2",
+      "evidence_url": "https://github.com/python/cpython/tree/v3.13.2/Modules/_hacl",
+      "relationship": "embedded objects injected into libpython",
+      "notice_path": "LICENSE-CPYTHON-HACL.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    },
+    {
+      "component": "StackFrame",
+      "identity": "vendored by Pyodide tag 0.29.3",
+      "evidence_url": "https://github.com/pyodide/pyodide/tree/0.29.3/src/js/vendor/stackframe",
+      "relationship": "vendored JavaScript source",
+      "notice_path": "LICENSE-STACKFRAME.txt",
+      "review_status": "SOURCE_AND_NOTICE_IDENTIFIED"
+    }
+  ],
+  "owner_reviewed_on": "2026-08-02",
+  "review_status": "OWNER_REVIEWED_COMPONENT_NOTICE_INVENTORY_NO_INDEPENDENT_FTO_OPINION"
+}

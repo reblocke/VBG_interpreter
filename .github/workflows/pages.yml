@@ -1,0 +1,120 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'reblocke/VBG_interpreter' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_allowed: ${{ steps.repository.outputs.deploy_allowed }}
+    steps:
+      - name: Read live repository visibility
+        id: repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibility="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.visibility')"
+          if [ "${visibility}" = "public" ]; then
+            echo "deploy_allowed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "deploy_allowed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+  build:
+    needs: preflight
+    if: needs.preflight.outputs.deploy_allowed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          prune-cache: true
+          version: "0.11.11"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      - name: Verify reviewed source
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          make verify
+          make validation
+
+      - name: Build commit-bound Pages bundle
+        env:
+          VBG_EXPLORER_SOURCE_COMMIT: ${{ github.sha }}
+        run: uv run python scripts/build_web.py
+
+      - name: Verify deployment identity
+        run: |
+          uv run python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path(".build/web/release-manifest.json").read_text())
+          assert manifest["build_binding"] == "SOURCE_COMMIT"
+          assert manifest["source_commit"] == os.environ["GITHUB_SHA"]
+          assert manifest["version"] == "0.1.0"
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .build/web
+
+  deploy:
+    needs: build
+    if: github.repository == 'reblocke/VBG_interpreter'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Recheck live public visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibility="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.visibility')"
+          test "${visibility}" = "public"
+          default_branch="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
+          test "${default_branch}" = "main"
+          live_main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test "${live_main_sha}" = "${GITHUB_SHA}"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
