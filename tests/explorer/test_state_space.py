@@ -65,7 +65,10 @@ def _region(
             external_validation=True,
             source_ids=("test",),
         ),
-        uncertainty_profile_id="test-profile",
+        ph_model_id="test-ph-model",
+        paco2_model_id="test-paco2-model",
+        ph_profile_id="test-ph-profile",
+        paco2_profile_id="test-paco2-profile",
     )
 
 
@@ -198,7 +201,7 @@ def test_unavailable_region_marks_every_feature_not_evaluable() -> None:
     result = enumerate_candidate_state_space(
         CandidateArterialRegion(
             status=CandidateRegionStatus.UNAVAILABLE,
-            reason_codes=(CandidateRegionReasonCode.MISSING_SAME_SAMPLE_VENOUS_SATURATION,),
+            reason_codes=(CandidateRegionReasonCode.MATERIAL_PREANALYTIC_CONCERN,),
         )
     )
 

@@ -1,7 +1,7 @@
 import { clearExplorerResult, renderExplorerResult } from "./js/explorer-rendering.js";
 import { createWorkerClient } from "./js/worker-client.js";
 
-const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/1.0";
+const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/2.0";
 const DECIMAL_STRING = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 
 class BrowserInputError extends Error {}
@@ -102,15 +102,22 @@ function selectValue(id) {
 }
 
 function collectCurrentVbg() {
+  const ph = optionalDecimalString("current-ph", "Measured venous pH");
+  const pco2 = optionalDecimalString("current-pco2", "Measured PvCO2");
   const hco3 = optionalDecimalString("current-hco3", "HCO3");
+  if ([ph, pco2, hco3].filter((value) => value !== null).length < 2) {
+    throw new BrowserInputError(
+      "Provide any two of measured venous pH, PvCO2, and blood-gas HCO3.",
+    );
+  }
   const saturationValue = optionalDecimalString(
     "venous-saturation",
     "Venous oxygen saturation",
   );
   return {
-    ph: requiredDecimalString("current-ph", "Measured venous pH"),
-    pco2: requiredDecimalString("current-pco2", "Measured PvCO2"),
-    pco2_unit: selectValue("current-pco2-unit"),
+    ph,
+    pco2,
+    pco2_unit: pco2 === null ? null : selectValue("current-pco2-unit"),
     hco3_mmol_l: hco3,
     hco3_basis: hco3 === null ? "UNKNOWN" : selectValue("hco3-basis"),
     base_excess_mmol_l: optionalDecimalString("base-excess", "Venous base excess"),
@@ -128,9 +135,9 @@ function collectCurrentVbg() {
 
 function collectCurrentChemistry() {
   return {
-    sodium_mmol_l: requiredDecimalString("sodium", "Sodium"),
-    chloride_mmol_l: requiredDecimalString("chloride", "Chloride"),
-    serum_total_co2_mmol_l: requiredDecimalString("serum-total-co2", "Serum total CO2"),
+    sodium_mmol_l: optionalDecimalString("sodium", "Sodium"),
+    chloride_mmol_l: optionalDecimalString("chloride", "Chloride"),
+    serum_total_co2_mmol_l: optionalDecimalString("serum-total-co2", "Serum total CO2"),
     albumin_g_l: optionalDecimalString("albumin", "Albumin"),
     lactate_mmol_l: optionalDecimalString("lactate", "Lactate"),
     relationship_to_vbg: selectValue("chemistry-relationship"),

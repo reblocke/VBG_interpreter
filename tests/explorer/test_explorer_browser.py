@@ -133,12 +133,9 @@ def _open_mocked_explorer(page: Page, explorer_url: str) -> None:
     expect(page.locator("#runtime-status")).to_contain_text("Ready")
 
 
-def _fill_required_inputs(page: Page) -> None:
+def _fill_minimum_gas_inputs(page: Page) -> None:
     page.locator("#current-ph").fill("7.32")
     page.locator("#current-pco2").fill("55")
-    page.locator("#sodium").fill("140")
-    page.locator("#chloride").fill("105")
-    page.locator("#serum-total-co2").fill("24")
 
 
 def _enable_eligible_candidate_modeling(page: Page) -> None:
@@ -156,7 +153,7 @@ def _enable_eligible_candidate_modeling(page: Page) -> None:
 
 def _available_result(*, unsafe_marker: str | None = None) -> dict[str, object]:
     provenance: dict[str, object] = {
-        "software_version": "0.1.0",
+        "software_version": "0.2.0",
         "model": "synthetic-browser-test",
         "nested_unknown_field": {"items": ["one", "two"]},
     }
@@ -164,7 +161,7 @@ def _available_result(*, unsafe_marker: str | None = None) -> dict[str, object]:
         provenance["display_marker"] = unsafe_marker
     return {
         "result": {
-            "schema_version": "vbg_explorer_result/1.0",
+            "schema_version": "vbg_explorer_result/2.0",
             "observed_vbg": {
                 "ph": 7.32,
                 "pco2_input": 55,
@@ -177,22 +174,44 @@ def _available_result(*, unsafe_marker: str | None = None) -> dict[str, object]:
                 "draw_site": "UPPER_EXTREMITY_PERIPHERAL",
                 "venous_o2_saturation": None,
             },
+            "completed_venous_gas": {
+                "ph": 7.32,
+                "pco2_mmhg": 55,
+                "hco3_mmol_l": 26.3,
+                "ph_origin": "SUPPLIED",
+                "pco2_origin": "SUPPLIED",
+                "hco3_origin": "DERIVED_HENDERSON_HASSELBALCH",
+                "hco3_ph_pco2_comparator_mmol_l": None,
+                "hco3_discrepancy_mmol_l": None,
+                "limitation_codes": [],
+            },
+            "venous_orientation": {
+                "ph_reference_orientation": "BELOW_RULESET_REFERENCE_BAND",
+                "limitation_codes": ["VENOUS_ONLY_ORIENTATION"],
+            },
             "candidate_arterial_region": {
                 "status": "AVAILABLE",
                 "reason_codes": [],
-                "warning_codes": [],
+                "warning_codes": ["GENERIC_MODEL_WITH_UNKNOWN_SPECIMEN"],
                 "point": {"ph": 7.34, "paco2_mmhg": 51.0},
                 "ph_interval": {"lower": 7.31, "upper": 7.37},
                 "paco2_interval": {"lower": 45.7, "upper": 56.9},
-                "uncertainty_profile_id": "synthetic-profile",
+                "ph_model_id": "generic_peripheral_vbg_offset_v1",
+                "paco2_model_id": "generic_peripheral_vbg_offset_v1",
+                "ph_profile_id": "synthetic-ph-profile",
+                "paco2_profile_id": "synthetic-paco2-profile",
                 "ph_evidence": {
                     "evidence_tier": "DERIVATION_ONLY",
                     "external_validation": False,
                 },
                 "paco2_evidence": {
-                    "evidence_tier": "EXTERNALLY_EVALUATED",
-                    "external_validation": True,
+                    "evidence_tier": "DERIVATION_ONLY",
+                    "external_validation": False,
                 },
+                "limitation_codes": [
+                    "GENERIC_POPULATION_OFFSET_NOT_INDIVIDUAL_CORRECTION",
+                    "GENERIC_AXES_NOT_JOINTLY_VALIDATED",
+                ],
             },
             "state_space": {
                 "enumeration_status": "CERTIFIED_EXHAUSTIVE",
@@ -229,12 +248,19 @@ def _available_result(*, unsafe_marker: str | None = None) -> dict[str, object]:
                 },
             },
             "chemistry": {
-                "status": "AVAILABLE",
+                "status": "COMPLETED",
                 "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT",
+                "sodium_mmol_l": 140,
+                "chloride_mmol_l": 105,
                 "serum_total_co2_mmol_l": 24,
+                "albumin_g_l": None,
+                "lactate_mmol_l": None,
                 "anion_gap_mmol_l": 11,
                 "corrected_anion_gap_mmol_l": None,
                 "limitation_codes": [],
+                "stewart_partition": {"status": "NOT_EVALUABLE"},
+                "identifiable_components": ["SERUM_ANION_GAP"],
+                "nonidentifiable_components": [],
             },
             "longitudinal_context": {
                 "status": "NOT_PROVIDED",
@@ -252,7 +278,7 @@ def test_reset_invalidates_a_pending_response_and_preserves_decimal_strings(
     page: Page, explorer_url: str
 ) -> None:
     _open_mocked_explorer(page, explorer_url)
-    _fill_required_inputs(page)
+    _fill_minimum_gas_inputs(page)
     page.locator("#interpret-button").click()
 
     messages = page.evaluate("window.__explorerWorkerMessages")
@@ -260,9 +286,10 @@ def test_reset_invalidates_a_pending_response_and_preserves_decimal_strings(
     request = messages[1]["input"]
     assert request["current_vbg"]["ph"] == "7.32"
     assert request["current_vbg"]["pco2"] == "55"
-    assert request["current_chemistry"]["sodium_mmol_l"] == "140"
-    assert request["current_chemistry"]["chloride_mmol_l"] == "105"
-    assert request["current_chemistry"]["serum_total_co2_mmol_l"] == "24"
+    assert request["schema_version"] == "vbg_explorer_request/2.0"
+    assert request["current_chemistry"]["sodium_mmol_l"] is None
+    assert request["current_chemistry"]["chloride_mmol_l"] is None
+    assert request["current_chemistry"]["serum_total_co2_mmol_l"] is None
 
     page.locator("#reset-button").click()
     expect(page.locator("#current-ph")).to_have_value("")
@@ -276,11 +303,78 @@ def test_reset_invalidates_a_pending_response_and_preserves_decimal_strings(
     expect(page.locator("#interpret-button")).to_be_enabled()
 
 
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    (
+        (
+            {"current-ph": "7.32", "current-pco2": "55"},
+            {"ph": "7.32", "pco2": "55", "hco3_mmol_l": None, "pco2_unit": "mmHg"},
+        ),
+        (
+            {"current-ph": "7.32", "current-hco3": "26.3"},
+            {"ph": "7.32", "pco2": None, "hco3_mmol_l": "26.3", "pco2_unit": None},
+        ),
+        (
+            {"current-pco2": "55", "current-hco3": "26.3"},
+            {"ph": None, "pco2": "55", "hco3_mmol_l": "26.3", "pco2_unit": "mmHg"},
+        ),
+    ),
+)
+def test_browser_accepts_each_two_of_three_gas_pairs_without_chemistry(
+    page: Page,
+    explorer_url: str,
+    values: dict[str, str],
+    expected: dict[str, str | None],
+) -> None:
+    _open_mocked_explorer(page, explorer_url)
+    for field_id, value in values.items():
+        page.locator(f"#{field_id}").fill(value)
+
+    page.locator("#interpret-button").click()
+
+    messages = page.evaluate("window.__explorerWorkerMessages")
+    assert [message["type"] for message in messages] == ["initialize", "interpret"]
+    request = messages[1]["input"]
+    actual_vbg = {key: request["current_vbg"][key] for key in (*expected, "hco3_basis")}
+    assert actual_vbg == {
+        **expected,
+        "hco3_basis": "REPORTED" if expected["hco3_mmol_l"] is not None else "UNKNOWN",
+    }
+    chemistry = request["current_chemistry"]
+    assert {
+        key: chemistry[key]
+        for key in (
+            "sodium_mmol_l",
+            "chloride_mmol_l",
+            "serum_total_co2_mmol_l",
+            "albumin_g_l",
+            "lactate_mmol_l",
+        )
+    } == {
+        "sodium_mmol_l": None,
+        "chloride_mmol_l": None,
+        "serum_total_co2_mmol_l": None,
+        "albumin_g_l": None,
+        "lactate_mmol_l": None,
+    }
+
+
+def test_browser_rejects_less_than_two_venous_gas_values(page: Page, explorer_url: str) -> None:
+    _open_mocked_explorer(page, explorer_url)
+    page.locator("#current-ph").fill("7.32")
+
+    page.locator("#interpret-button").click()
+
+    expect(page.locator("#form-errors")).to_contain_text("Provide any two")
+    messages = page.evaluate("window.__explorerWorkerMessages")
+    assert [message["type"] for message in messages] == ["initialize"]
+
+
 def test_accessible_state_space_and_generic_renderer_are_safe(
     page: Page, explorer_url: str
 ) -> None:
     _open_mocked_explorer(page, explorer_url)
-    _fill_required_inputs(page)
+    _fill_minimum_gas_inputs(page)
     page.locator("#interpret-button").click()
 
     unsafe_marker = '<img id="unsafe-probe" src="x">'
@@ -337,6 +431,13 @@ def test_accessible_state_space_and_generic_renderer_are_safe(
         "Present across all modeled states"
     )
     expect(page.locator("#chemistry-result")).to_contain_text("Same Clinical Timepoint")
+    expect(page.locator("#observed-result")).to_contain_text("Measured venous inputs")
+    expect(page.locator("#observed-result")).to_contain_text("Completed venous gas")
+    expect(page.locator("#observed-result")).to_contain_text("Derived Henderson Hasselbalch")
+    expect(page.locator("#candidate-result")).to_contain_text("Best-guess arterial orientation")
+    expect(page.locator("#candidate-result")).to_contain_text(
+        "published study-level agreement-extrema scenario envelope"
+    )
 
     expect(page.locator("#unsafe-probe")).to_have_count(0)
     expect(page.locator("#generic-result")).to_contain_text(
@@ -347,7 +448,7 @@ def test_accessible_state_space_and_generic_renderer_are_safe(
 
 def test_renderer_refuses_an_unversioned_worker_result(page: Page, explorer_url: str) -> None:
     _open_mocked_explorer(page, explorer_url)
-    _fill_required_inputs(page)
+    _fill_minimum_gas_inputs(page)
     page.locator("#interpret-button").click()
 
     invalid = _available_result()
@@ -395,12 +496,21 @@ def test_live_pyodide_runs_complete_then_partial_explorer_flows(
 
     page.locator("#venous-saturation").fill("")
     page.locator("#interpret-button").click()
-    expect(page.locator("#candidate-result")).to_contain_text("Unavailable")
-    expect(page.locator("#state-space-summary")).to_contain_text("Not Evaluated")
-    expect(page.locator("#feature-conclusions")).to_contain_text(
-        "Not evaluable with the supplied information"
+    expect(page.locator("#candidate-result")).to_contain_text("Available")
+    expect(page.locator("#candidate-result")).to_contain_text(
+        "published study-level agreement-extrema scenario envelope"
     )
-    expect(page.locator("#state-space-figure")).to_be_hidden()
+    expect(page.locator("#state-space-summary")).to_contain_text("Certified Exhaustive")
+    expect(page.locator("#state-space-figure")).to_be_visible()
+
+    page.locator("#reset-button").click()
+    page.locator("#current-ph").fill("7.314159")
+    page.locator("#current-hco3").fill("26.3")
+    page.locator("#interpret-button").click()
+    expect(page.locator("#results-content")).to_be_visible(timeout=120_000)
+    expect(page.locator("#candidate-result")).to_contain_text("Available")
+    expect(page.locator("#observed-result")).to_contain_text("Derived Henderson Hasselbalch")
+    expect(page.locator("#chemistry-result")).to_contain_text("Not Provided")
 
     for request in observed_requests:
         assert urlparse(request["url"]).netloc == urlparse(explorer_url).netloc

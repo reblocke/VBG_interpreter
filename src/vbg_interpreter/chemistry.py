@@ -1,6 +1,8 @@
-"""Serum-chemistry context and optional venous-basis Stewart partitioning."""
+"""Progressive serum-chemistry context and venous-basis Stewart partitioning."""
 
 from __future__ import annotations
+
+import math
 
 from vbg_interpreter.evidence import (
     ALBUMIN_CORRECTED_ANION_GAP_METADATA,
@@ -27,31 +29,60 @@ def calculate_chemistry_interpretation(
     *,
     current_vbg: NormalizedVbg | None = None,
 ) -> ChemistryInterpretation:
-    """Return chemistry facts and any eligible venous-basis Stewart partition.
+    """Return every chemistry fact whose explicit operands are present.
 
-    Serum total CO2 is used only as serum chemistry in the anion-gap lane.  A
-    complete partition instead uses supplied venous pH, measured venous base
-    excess, and same-timepoint chemistry. Serum total CO2 is never substituted
-    for a blood-gas value. A numerical refusal in this optional lane does not
-    suppress observed VBG or serum-chemistry facts.
+    Serum total CO2 remains chemistry-only.  It never fills blood-gas HCO3 or
+    contributes to current PCO2.  An incomplete chemistry panel withholds only
+    its dependent calculation rather than the complete Explorer result.
     """
 
     if not isinstance(value, CurrentChemistry):
         raise TypeError("value must be CurrentChemistry.")
-    raw = value.sodium_mmol_l - value.chloride_mmol_l - value.serum_total_co2_mmol_l
+
+    has_any = any(
+        item is not None
+        for item in (
+            value.sodium_mmol_l,
+            value.chloride_mmol_l,
+            value.serum_total_co2_mmol_l,
+            value.albumin_g_l,
+            value.lactate_mmol_l,
+        )
+    )
+    ag_ready = all(
+        item is not None
+        for item in (value.sodium_mmol_l, value.chloride_mmol_l, value.serum_total_co2_mmol_l)
+    )
+    anion_gap = None
+    identifiable: list[str] = []
     limitations: list[LimitationCode] = [
         LimitationCode.SERUM_TOTAL_CO2_IS_NOT_BLOOD_GAS_HCO3,
         LimitationCode.NO_CURRENT_PACO2_FROM_CHEMISTRY_ONLY,
     ]
-    identifiable = ["SERUM_ANION_GAP"]
-    corrected = None
-    if value.albumin_g_l is None:
-        limitations.append(LimitationCode.ALBUMIN_CORRECTION_NOT_EVALUABLE)
+    if ag_ready:
+        if (
+            value.sodium_mmol_l is None
+            or value.chloride_mmol_l is None
+            or value.serum_total_co2_mmol_l is None
+        ):  # pragma: no cover - guarded by ag_ready
+            raise AssertionError("Anion-gap operands must be present.")
+        anion_gap = value.sodium_mmol_l - value.chloride_mmol_l - value.serum_total_co2_mmol_l
+        identifiable.append("SERUM_ANION_GAP")
     else:
-        corrected = raw + ALBUMIN_ANION_GAP_CORRECTION_PER_G_L * (
+        limitations.append(LimitationCode.ANION_GAP_NOT_EVALUABLE_MISSING_OPERANDS)
+
+    corrected = None
+    if anion_gap is not None and value.albumin_g_l is not None:
+        corrected_candidate = anion_gap + ALBUMIN_ANION_GAP_CORRECTION_PER_G_L * (
             ALBUMIN_REFERENCE_G_L - value.albumin_g_l
         )
-        identifiable.append("ALBUMIN_CORRECTED_ANION_GAP")
+        if math.isfinite(corrected_candidate):
+            corrected = corrected_candidate
+            identifiable.append("ALBUMIN_CORRECTED_ANION_GAP")
+        else:
+            limitations.append(LimitationCode.ALBUMIN_CORRECTION_NOT_EVALUABLE)
+    else:
+        limitations.append(LimitationCode.ALBUMIN_CORRECTION_NOT_EVALUABLE)
 
     partition = _calculate_stewart_partition(value, current_vbg=current_vbg)
     if partition.status is StewartPartitionStatus.COMPLETED:
@@ -59,12 +90,22 @@ def calculate_chemistry_interpretation(
     else:
         limitations.extend(partition.limitation_codes)
 
+    if not has_any:
+        status = ChemistryStatus.NOT_PROVIDED
+    elif ag_ready:
+        status = ChemistryStatus.COMPLETED
+    else:
+        status = ChemistryStatus.PARTIAL
     limitation_tuple = _unique_limitations(limitations)
     return ChemistryInterpretation(
-        status=ChemistryStatus.COMPLETED,
+        status=status,
         relationship_to_vbg=value.relationship_to_vbg,
+        sodium_mmol_l=value.sodium_mmol_l,
+        chloride_mmol_l=value.chloride_mmol_l,
         serum_total_co2_mmol_l=value.serum_total_co2_mmol_l,
-        anion_gap_mmol_l=raw,
+        albumin_g_l=value.albumin_g_l,
+        lactate_mmol_l=value.lactate_mmol_l,
+        anion_gap_mmol_l=anion_gap,
         corrected_anion_gap_mmol_l=corrected,
         limitation_codes=limitation_tuple,
         stewart_partition=partition,
@@ -74,6 +115,7 @@ def calculate_chemistry_interpretation(
             for code in limitation_tuple
             if code
             in {
+                LimitationCode.ANION_GAP_NOT_EVALUABLE_MISSING_OPERANDS,
                 LimitationCode.ALBUMIN_CORRECTION_NOT_EVALUABLE,
                 LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
                 LimitationCode.BASE_EXCESS_REQUIRED_FOR_STEWART_PARTITION,
@@ -83,7 +125,7 @@ def calculate_chemistry_interpretation(
                 LimitationCode.RESIDUAL_UNMEASURED_IONS_NOT_IDENTIFIABLE,
             }
         ),
-        anion_gap_metadata=SERUM_ANION_GAP_METADATA,
+        anion_gap_metadata=SERUM_ANION_GAP_METADATA if anion_gap is not None else None,
         corrected_anion_gap_metadata=(
             ALBUMIN_CORRECTED_ANION_GAP_METADATA if corrected is not None else None
         ),
@@ -96,30 +138,31 @@ def _calculate_stewart_partition(
     current_vbg: NormalizedVbg | None,
 ) -> StewartPartitionContext:
     reasons: list[LimitationCode] = []
-    if current_vbg is None:
+    if current_vbg is None or current_vbg.ph is None:
         reasons.append(LimitationCode.STEWART_PARTITION_NOT_EVALUABLE)
-    else:
-        if current_vbg.base_excess_mmol_l is None:
-            reasons.extend(
-                (
-                    LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
-                    LimitationCode.BASE_EXCESS_REQUIRED_FOR_STEWART_PARTITION,
-                )
+    elif current_vbg.base_excess_mmol_l is None:
+        reasons.extend(
+            (
+                LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
+                LimitationCode.BASE_EXCESS_REQUIRED_FOR_STEWART_PARTITION,
             )
-        if chemistry.albumin_g_l is None:
-            reasons.extend(
-                (
-                    LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
-                    LimitationCode.ALBUMIN_REQUIRED_FOR_STEWART_PARTITION,
-                )
+        )
+    if chemistry.sodium_mmol_l is None or chemistry.chloride_mmol_l is None:
+        reasons.append(LimitationCode.STEWART_PARTITION_NOT_EVALUABLE)
+    if chemistry.albumin_g_l is None:
+        reasons.extend(
+            (
+                LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
+                LimitationCode.ALBUMIN_REQUIRED_FOR_STEWART_PARTITION,
             )
-        if chemistry.relationship_to_vbg is not ChemistryTimeRelationship.SAME_CLINICAL_TIMEPOINT:
-            reasons.extend(
-                (
-                    LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
-                    LimitationCode.CHEMISTRY_TIME_RELATIONSHIP_NOT_SAME,
-                )
+        )
+    if chemistry.relationship_to_vbg is not ChemistryTimeRelationship.SAME_CLINICAL_TIMEPOINT:
+        reasons.extend(
+            (
+                LimitationCode.STEWART_PARTITION_NOT_EVALUABLE,
+                LimitationCode.CHEMISTRY_TIME_RELATIONSHIP_NOT_SAME,
             )
+        )
     if reasons:
         return StewartPartitionContext.not_evaluable(
             *_unique_limitations(
@@ -128,13 +171,14 @@ def _calculate_stewart_partition(
         )
     if (
         current_vbg is None
-        or chemistry.albumin_g_l is None
+        or current_vbg.ph is None
         or current_vbg.base_excess_mmol_l is None
+        or chemistry.sodium_mmol_l is None
+        or chemistry.chloride_mmol_l is None
+        or chemistry.albumin_g_l is None
     ):
         raise AssertionError("Eligible partition inputs must be complete.")
 
-    # The upstream project owns the partition formula. Import lazily so this
-    # optional lane cannot affect basic observed or serum-chemistry output.
     from stewartlight import StewartPartitionInput, calculate_stewart_partition
 
     try:

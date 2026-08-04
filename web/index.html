@@ -85,14 +85,16 @@
             <p class="eyebrow">Inputs</p>
             <h2 id="input-heading">Current venous gas and chemistry</h2>
             <p>
-              Required source measurements are interpreted as entered. Optional information only
-              enables the corresponding modeled or contextual lane.
+              Enter any two of venous pH, PvCO<sub>2</sub>, and blood-gas HCO<sub>3</sub>. The
+              Explorer calculates the third value algebraically and keeps it distinct from a
+              supplied measurement. Every chemistry field is optional and enables only its own
+              contextual lane.
             </p>
           </div>
 
           <form id="explorer-form" aria-labelledby="input-heading" novalidate>
             <fieldset>
-              <legend>Current venous blood gas</legend>
+              <legend>Current venous blood gas — any two values required</legend>
               <div class="field-grid">
                 <label for="current-ph">
                   <span>Measured venous pH</span>
@@ -101,7 +103,6 @@
                     name="current_ph"
                     inputmode="decimal"
                     autocomplete="off"
-                    required
                   />
                 </label>
                 <label for="current-pco2">
@@ -111,7 +112,6 @@
                     name="current_pco2"
                     inputmode="decimal"
                     autocomplete="off"
-                    required
                   />
                 </label>
                 <label for="current-pco2-unit">
@@ -119,6 +119,22 @@
                   <select id="current-pco2-unit" name="current_pco2_unit">
                     <option value="mmHg">mmHg</option>
                     <option value="kPa">kPa</option>
+                  </select>
+                </label>
+                <label for="current-hco3">
+                  <span>Blood-gas HCO<sub>3</sub> <small>mmol/L</small></span>
+                  <input
+                    id="current-hco3"
+                    name="current_hco3"
+                    inputmode="decimal"
+                    autocomplete="off"
+                  />
+                </label>
+                <label for="hco3-basis">
+                  <span>HCO<sub>3</sub> basis</span>
+                  <select id="hco3-basis" name="hco3_basis">
+                    <option value="REPORTED">Reported by analyzer</option>
+                    <option value="CALCULATED">Calculated</option>
                   </select>
                 </label>
                 <label for="specimen-type">
@@ -145,17 +161,18 @@
                 </label>
               </div>
               <p class="field-note">
-                PvCO<sub>2</sub> remains a measured venous value. It is never relabeled as
-                PaCO<sub>2</sub> or passed directly to arterial Boston logic.
+                The third gas coordinate is calculated only when it was not supplied. PvCO<sub>2</sub>
+                remains a venous value; it is never relabeled as PaCO<sub>2</sub> or passed directly
+                to arterial Boston logic.
               </p>
             </fieldset>
 
             <fieldset>
-              <legend>Current chemistry</legend>
+              <legend>Current chemistry — all fields optional</legend>
               <div class="field-grid">
                 <label for="sodium">
                   <span>Sodium <small>mmol/L</small></span>
-                  <input id="sodium" name="sodium" inputmode="decimal" autocomplete="off" required />
+                  <input id="sodium" name="sodium" inputmode="decimal" autocomplete="off" />
                 </label>
                 <label for="chloride">
                   <span>Chloride <small>mmol/L</small></span>
@@ -164,7 +181,6 @@
                     name="chloride"
                     inputmode="decimal"
                     autocomplete="off"
-                    required
                   />
                 </label>
                 <label for="serum-total-co2">
@@ -174,7 +190,6 @@
                     name="serum_total_co2"
                     inputmode="decimal"
                     autocomplete="off"
-                    required
                   />
                 </label>
               </div>
@@ -188,24 +203,8 @@
               <summary>Optional current measurements</summary>
               <div class="details-body">
                 <fieldset>
-                  <legend>Reported gas values</legend>
+                  <legend>Additional venous gas context</legend>
                   <div class="field-grid">
-                    <label for="current-hco3">
-                      <span>HCO<sub>3</sub> <small>mmol/L</small></span>
-                      <input
-                        id="current-hco3"
-                        name="current_hco3"
-                        inputmode="decimal"
-                        autocomplete="off"
-                      />
-                    </label>
-                    <label for="hco3-basis">
-                      <span>HCO<sub>3</sub> basis</span>
-                      <select id="hco3-basis" name="hco3_basis">
-                        <option value="REPORTED">Reported by analyzer</option>
-                        <option value="CALCULATED">Calculated</option>
-                      </select>
-                    </label>
                     <label for="base-excess">
                       <span>Venous base excess <small>mmol/L</small></span>
                       <input
@@ -474,14 +473,14 @@
             </article>
 
             <article class="result-card" aria-labelledby="observed-heading">
-              <p class="result-kicker">Observed</p>
-              <h3 id="observed-heading">Measured venous blood gas</h3>
+              <p class="result-kicker">Observed and calculated — never arterial</p>
+              <h3 id="observed-heading">Measured venous inputs and completed gas</h3>
               <div id="observed-result"></div>
             </article>
 
             <article class="result-card" aria-labelledby="candidate-heading">
-              <p class="result-kicker">Modeled — not measured</p>
-              <h3 id="candidate-heading">Candidate arterial region</h3>
+              <p class="result-kicker">Best-guess modeled orientation — not measured</p>
+              <h3 id="candidate-heading">Candidate arterial scenario region</h3>
               <div id="candidate-result"></div>
             </article>
 

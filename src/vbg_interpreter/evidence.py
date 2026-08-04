@@ -1,7 +1,8 @@
-"""Frozen, local evidence records for retained explorer calculations.
+"""Frozen, local evidence records for the Explorer's retained components.
 
-The reset deliberately has no model registry loader.  These records reproduce the
-approved Farkas/Jorg component constants without importing the superseded runtime.
+The package deliberately has no model-registry loader.  These records keep the
+reviewed Bloom generic sensitivity parameters and the Farkas/Jörg PaCO2 upgrade
+local and explicit.
 """
 
 from __future__ import annotations
@@ -10,6 +11,8 @@ from dataclasses import dataclass
 
 from vbg_interpreter.models import (
     CalculationMetadata,
+    CandidateArterialRegion,
+    CandidateRegionStatus,
     EvidenceDescriptor,
     EvidenceTier,
     ExplorerProvenance,
@@ -19,13 +22,21 @@ from vbg_interpreter.version import VERSION
 
 FARKAS_SIMPLIFIED_MODEL_ID = "farkas_simplified_93_v1"
 FARKAS_SIMPLIFIED_MODEL_VERSION = "1.0.0"
+COMPONENT_SELECTED_CANDIDATE_MODEL_ID = "component_selected_candidate_region_v2"
+COMPONENT_SELECTED_CANDIDATE_MODEL_VERSION = "2.0.0"
+GENERIC_PERIPHERAL_OFFSET_MODEL_ID = "generic_peripheral_vbg_offset_v1"
+GENERIC_PERIPHERAL_OFFSET_MODEL_VERSION = "1.0.0"
+GENERIC_PH_POINT_OFFSET = 0.033
+GENERIC_PH_LOWER_OFFSET = -0.10
+GENERIC_PH_UPPER_OFFSET = 0.18
+GENERIC_PH_PROFILE_ID = "bloom_2014_published_study_extrema_ph"
+GENERIC_PACO2_POINT_OFFSET_MMHG = -4.41
+GENERIC_PACO2_LOWER_OFFSET_MMHG = -26.0
+GENERIC_PACO2_UPPER_OFFSET_MMHG = 20.4
+GENERIC_PACO2_PROFILE_ID = "bloom_2014_published_study_extrema_pco2"
+GENERIC_SCENARIO_ENVELOPE_LABEL = "published study-level agreement-extrema scenario envelope"
 FARKAS_SATURATION_REFERENCE_PERCENT = 93.0
-FARKAS_PH_COEFFICIENT_PER_PERCENTAGE_POINT = 0.0011
 FARKAS_PACO2_COEFFICIENT_MMHG_PER_PERCENTAGE_POINT = -0.22
-FARKAS_PH_UNCERTAINTY_PROFILE_ID = "farkas_2012_ph_approx_error_band"
-FARKAS_PH_UNCERTAINTY_LOWER_OFFSET = -0.03
-FARKAS_PH_UNCERTAINTY_UPPER_OFFSET = 0.03
-FARKAS_PH_UNCERTAINTY_LABEL = "source-reported approximate 95% error band"
 PACO2_INTERVAL_LABEL = "arterial-reference sensitivity range"
 PACO2_ERROR_CONVENTION = "estimate_minus_arterial_reference"
 BOSTON_RULESET_ID = "stewartlight_boston_ruleset_v1"
@@ -41,10 +52,29 @@ class Paco2UncertaintyProfile:
     source_ids: tuple[str, ...]
 
 
-PH_EVIDENCE = EvidenceDescriptor(
+GENERIC_PH_EVIDENCE = EvidenceDescriptor(
     evidence_tier=EvidenceTier.DERIVATION_ONLY,
     external_validation=False,
-    source_ids=("farkas_2012_public_manuscript",),
+    source_ids=("bloom_2014",),
+)
+GENERIC_PACO2_EVIDENCE = EvidenceDescriptor(
+    evidence_tier=EvidenceTier.DERIVATION_ONLY,
+    external_validation=False,
+    source_ids=("bloom_2014",),
+)
+DERIVED_AXIS_GENERIC_EVIDENCE = EvidenceDescriptor(
+    evidence_tier=EvidenceTier.DERIVATION_ONLY,
+    external_validation=False,
+    source_ids=("bloom_2014", "henderson_hasselbalch_documented_constants_v1"),
+)
+DERIVED_FARKAS_PACO2_EVIDENCE = EvidenceDescriptor(
+    evidence_tier=EvidenceTier.DERIVATION_ONLY,
+    external_validation=False,
+    source_ids=(
+        "farkas_2012_public_manuscript",
+        "jorg_2023",
+        "henderson_hasselbalch_documented_constants_v1",
+    ),
 )
 PACO2_EVIDENCE = EvidenceDescriptor(
     evidence_tier=EvidenceTier.EXTERNALLY_EVALUATED,
@@ -109,14 +139,29 @@ def paco2_profile_for_oxygen(status: TriState) -> Paco2UncertaintyProfile:
     return PACO2_PROFILES[status]
 
 
-def explorer_provenance() -> ExplorerProvenance:
-    """Return the fixed provenance record included in every full explorer result."""
+def explorer_provenance(
+    candidate_region: CandidateArterialRegion | None = None,
+) -> ExplorerProvenance:
+    """Return provenance using the selected or attempted component evidence."""
+
+    if candidate_region is not None and not isinstance(candidate_region, CandidateArterialRegion):
+        raise TypeError("candidate_region must be CandidateArterialRegion or None.")
+    ph_evidence = GENERIC_PH_EVIDENCE
+    paco2_evidence = GENERIC_PACO2_EVIDENCE
+    if candidate_region is not None and candidate_region.status in {
+        CandidateRegionStatus.AVAILABLE,
+        CandidateRegionStatus.MODEL_DOMAIN_REFUSAL,
+    }:
+        if candidate_region.ph_evidence is None or candidate_region.paco2_evidence is None:
+            raise AssertionError("Attempted candidate models require component evidence.")
+        ph_evidence = candidate_region.ph_evidence
+        paco2_evidence = candidate_region.paco2_evidence
 
     return ExplorerProvenance(
         software_version=VERSION,
-        candidate_region_model_id=FARKAS_SIMPLIFIED_MODEL_ID,
-        candidate_region_model_version=FARKAS_SIMPLIFIED_MODEL_VERSION,
-        ph_evidence=PH_EVIDENCE,
-        paco2_evidence=PACO2_EVIDENCE,
+        candidate_region_model_id=COMPONENT_SELECTED_CANDIDATE_MODEL_ID,
+        candidate_region_model_version=COMPONENT_SELECTED_CANDIDATE_MODEL_VERSION,
+        ph_evidence=ph_evidence,
+        paco2_evidence=paco2_evidence,
         boston_ruleset_id=BOSTON_RULESET_ID,
     )

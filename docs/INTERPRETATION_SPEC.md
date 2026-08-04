@@ -2,14 +2,38 @@
 
 ## One result contract
 
-The only live request schema is `vbg_explorer_request/1.0`; the only live result schema is
-`vbg_explorer_result/1.0`. There is no migration or fallback behavior for superseded pre-release
+The only live request schema is `vbg_explorer_request/2.0`; the only live result schema is
+`vbg_explorer_result/2.0`. There is no migration or fallback behavior for superseded pre-release
 schemas.
 
 The public Python entry point is `vbg_interpreter.interpret_vbg(request)`. The browser calls the
 same contract through `vbg_interpreter.browser_adapter.interpret_browser_request_json`.
 Every result's provenance includes the producing Explorer software version. A deployed static
 bundle additionally publishes its exact Git commit in `release-manifest.json`.
+
+## Progressive input completion and model selection
+
+The request requires any two of current pH, PvCO₂, and blood-gas HCO₃. The result exposes one
+complete venous-gas coordinate, including an origin for every axis. A missing coordinate is
+calculated only by the retained Henderson–Hasselbalch relation. If all three are supplied, the
+result preserves the supplied values and publishes a pH/PvCO₂ HCO₃ comparator/discrepancy rather
+than silently replacing a value. This lane remains venous; `venous_orientation` is descriptive and
+is never a direct Boston interpretation.
+
+Absent a known blocker and within the model domain, `candidate_arterial_region` contains a
+component-selected pH–PaCO₂ rectangle. Its pH component is always the generic
+`generic_peripheral_vbg_offset_v1` component. Its PaCO₂ component is the same generic component
+unless all saturation, specimen, draw-site, and context gates permit the
+`farkas_simplified_93_v1` PaCO₂-only upgrade. Model IDs, profile IDs, evidence descriptors,
+warnings, and limitations are serialized separately for the two axes.
+
+The generic rectangle is a published study-level agreement-extrema sensitivity scenario. It is
+not an individual correction or a probability, confidence, prediction, or joint-coverage interval.
+Unknown source context is a warning and limitation, not favorable eligibility. Known out-of-scope
+conditions and nonpositive/nonfinite endpoints yield an unavailable or model-domain-refusal
+candidate region. The implementation never truncates an endpoint to force a positive interval.
+A model-domain refusal retains the attempted components' model, profile, and evidence metadata for
+provenance while withholding the invalid point and intervals.
 
 ## State enumeration
 
@@ -33,7 +57,9 @@ non-evaluability rule applies.
 The coordinate view is not the inference engine. Its x-axis is candidate arterial PaCO₂; its
 y-axis is candidate arterial pH. Sample markers exist for explanation, hover/focus, and a visual
 map only. Neither the number of markers nor their occupied area has probability, frequency,
-confidence, or likelihood meaning.
+confidence, or likelihood meaning. Certification applies only within the supplied candidate
+rectangle and retained software ruleset; it does not validate the rectangle's coverage or clinical
+applicability.
 
 ## Set predicates
 
@@ -60,16 +86,25 @@ does not exclude a disorder outside the current model inputs, scope, or software
 ## Point orientation
 
 The modeled point is displayed only for orientation. It never determines the headline when more
-than one state is feasible. A displayed point is modeled, not an arterial measurement.
+than one state is feasible. A displayed point is modeled, not an arterial measurement. A completed
+venous pH orientation is a separate descriptive lane and cannot select a state or remove a
+chronicity branch.
 
 ## Chemistry and longitudinal synthesis
 
-Chemistry and longitudinal results are parallel lanes. A chemistry observation may be described as
-concordant, discordant, or incomplete only when a future rule documents its predicate. In v1,
-serum total CO₂ does not narrow the modeled arterial state set. A prior observation remains
-contextual and does not delete a chronicity branch.
+Chemistry and longitudinal results are parallel lanes. Every current-chemistry field is optional:
+an empty lane is `NOT_PROVIDED`, a partial lane is `PARTIAL`, and an anion gap appears only when
+sodium, chloride, and serum total CO₂ are all supplied. Albumin correction, venous-basis Stewart
+partitioning, and each associated information need are independently gated. Serum total CO₂ does
+not become blood-gas HCO₃, does not infer current PaCO₂, and does not narrow the modeled arterial
+state set. A chemistry observation may be described as concordant, discordant, or incomplete only
+when a future rule documents its predicate. A prior observation remains contextual and does not
+delete a chronicity branch.
 
 The information-gain list contains typed, non-directive missing information that could reduce an
-identified limitation. It may mention arterial confirmation when needed, same-sample venous
-saturation, model context, albumin, base excess, or a comparable prior observation. It is not a
+identified limitation. When pH or PvCO₂ was algebraically derived, it identifies the missing
+direct venous measurement; it may also mention arterial confirmation when needed, same-sample
+venous saturation, model context, albumin, base excess, or a comparable prior observation. Each
+need is computed from its own missing input and applicable model gates, independently of the
+candidate region's status; a value already supplied is never requested as missing. It is not a
 treatment recommendation.

@@ -16,29 +16,44 @@ support, triage, monitoring, screening, diagnostic exclusion, or autonomous inte
 
 The Explorer keeps four lanes separate:
 
-- observed current VBG values;
+- observed and algebraically completed current VBG values;
 - an optional modeled arterial pH–PaCO₂ sensitivity region;
 - current serum-chemistry context; and
 - one optional prior observation as longitudinal context.
 
 Absence or refusal of one lane must not erase valid information from another lane.
 
+Any two of current pH, PvCO₂, and blood-gas HCO₃ are sufficient for venous-gas completion. The
+result identifies which coordinates were supplied and which were derived. Its venous pH reference
+orientation is descriptive only; it is not a Boston ruleset classification applied directly to a
+VBG.
+
 ## Candidate arterial region
 
-The initial modeled region is available only when all of the following are explicit:
+The generic candidate region uses a published-agreement sensitivity scenario for pH and PaCO₂
+after any two-of-three venous-gas completion. It is not an individual correction, prediction
+interval, arterial measurement, or claim of VBG–ABG interchangeability. The generic pH component
+is retained for every available candidate region. The generic PaCO₂ component is replaced only by
+the narrowly gated Farkas/Jörg **PaCO₂ component**, never by a Farkas pH component.
 
-- same-sample venous oxygen saturation with an explicit unit;
-- peripheral venous specimen type;
-- upper-extremity peripheral draw site;
-- no known poor perfusion or hemodynamic instability;
-- no recent major ventilation or treatment change; and
-- no material preanalytic concern.
+Known central, mixed, or capillary specimen types; known central or pulmonary-artery catheter
+draw sites; or `YES` for poor perfusion/hemodynamic instability, recent major ventilation/treatment
+change, or material preanalytic concern suppress the arterial sensitivity region. These fields
+deliberately have no newly invented blood-pressure, lactate, tourniquet, delay, or treatment-time
+threshold.
 
-For the three clinical-condition fields, `YES` blocks the modeled region and `UNKNOWN` is
-insufficient context. `NO` is required. These fields deliberately have no newly invented blood
-pressure, lactate, tourniquet, delay, or treatment-time threshold. Supplemental oxygen can be
-`YES`, `NO`, or `UNKNOWN`; it selects the recorded conservative PaCO₂ uncertainty profile and is
-not an oxygenation calculation.
+Unknown specimen, draw site, or the three clinical-condition fields is not favorable context. It
+does not enable the gated PaCO₂ upgrade, but it may leave the generic scenario available with
+explicit warnings and an unknown-applicability limitation. A nonpositive or nonfinite generic
+endpoint is a model-domain refusal; the Explorer does not clamp an endpoint because that could
+shrink the sensitivity region and create a false exclusion.
+
+The PaCO₂ upgrade requires all of the following: same-sample venous oxygen saturation with an
+explicit unit, peripheral venous specimen type, upper-extremity peripheral draw site, and `NO` for
+each of poor perfusion/hemodynamic instability, recent major ventilation/treatment change, and
+material preanalytic concern. Supplemental oxygen can be `YES`, `NO`, or `UNKNOWN`; it selects the
+recorded PaCO₂ profile and is not an oxygenation calculation. If the PaCO₂ axis was
+Henderson–Hasselbalch derived, it does not receive the external-evaluation label.
 
 An unavailable candidate region is not a claim that the observed VBG or chemistry is invalid. It
 only withholds model-dependent arterial conclusions.
@@ -56,11 +71,12 @@ within the stated modeled state space; it never means globally excluded for the 
 
 ## Chemistry and prior observations
 
-Serum total CO₂ is serum chemistry, not blood-gas HCO₃. The Explorer does not invert it into
-current PaCO₂ or use it to hard-filter the candidate arterial state set. It calculates serum anion
-gap and optional albumin-corrected context. A full Stewart partition requires supplied venous base
-excess, albumin, and same-clinical-timepoint chemistry; it is labelled `VENOUS_BASIS` and does not
-infer arterial SBE.
+Every current chemistry field is optional. Serum total CO₂ is serum chemistry, not blood-gas HCO₃.
+The Explorer does not invert it into current PaCO₂ or use it to hard-filter the candidate arterial
+state set. It calculates serum anion gap only when sodium, chloride, and serum total CO₂ are all
+supplied, and optional albumin-corrected context only when albumin is also supplied. A full Stewart
+partition requires supplied venous pH, venous base excess, albumin, sodium/chloride, and
+same-clinical-timepoint chemistry; it is labelled `VENOUS_BASIS` and does not infer arterial SBE.
 
 A prior ABG may be displayed as historical arterial context. A prior VBG remains venous, and a
 prior serum total-CO₂ value remains chemistry. One prior observation cannot prove chronicity,
@@ -81,8 +97,9 @@ requests. Users must not enter PHI or real patient data.
 
 ## Release claim boundary
 
-Version `0.1.0` is a public research preview. It establishes a reproducible implementation and
-documented software contract only. It does not establish clinical accuracy, safety, utility,
-generalizability, diagnostic performance, patient benefit, regulatory status, or management
-equivalence. Any future clinical evaluation requires a separately governed study and must not be
-inferred from the synthetic verification suite.
+Version `0.2.0` is the current public research preview, deployed from the same reviewed `main`
+commit identified by its release manifest. The historic `v0.1.0` preview and the current preview
+establish reproducible implementations and documented software contracts only; neither establishes
+clinical accuracy, safety, utility, generalizability, diagnostic performance, patient benefit,
+regulatory status, or management equivalence. Any future clinical evaluation requires a separately
+governed study and must not be inferred from the synthetic verification suite.

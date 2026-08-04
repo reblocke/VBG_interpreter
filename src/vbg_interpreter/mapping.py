@@ -1,4 +1,4 @@
-"""Strict mapping boundary for ``vbg_explorer_request/1.0``."""
+"""Strict mapping boundary for ``vbg_explorer_request/2.0``."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def request_from_mapping(payload: Mapping[str, object]) -> VbgExplorerRequest:
     root = require_exact_keys(payload, _ROOT_KEYS, path="request")
     if root["schema_version"] != VBG_EXPLORER_REQUEST_SCHEMA_VERSION:
         raise ExplorerSerializationError(
-            "schema_version must be vbg_explorer_request/1.0; no legacy migration is available."
+            "schema_version must be vbg_explorer_request/2.0; no legacy migration is available."
         )
     return VbgExplorerRequest(
         current_vbg=_current_vbg(root["current_vbg"]),
@@ -110,9 +110,9 @@ def _current_vbg(value: object) -> CurrentVbg:
     data = _object(value, _CURRENT_VBG_KEYS, "current_vbg")
     saturation = data["venous_o2_saturation"]
     return CurrentVbg(
-        ph=_number(data["ph"], "current_vbg.ph"),
-        pco2=_number(data["pco2"], "current_vbg.pco2"),
-        pco2_unit=_enum(Pco2Unit, data["pco2_unit"], "current_vbg.pco2_unit"),
+        ph=_optional_number(data["ph"], "current_vbg.ph"),
+        pco2=_optional_number(data["pco2"], "current_vbg.pco2"),
+        pco2_unit=_optional_enum(Pco2Unit, data["pco2_unit"], "current_vbg.pco2_unit"),
         hco3_mmol_l=_optional_number(data["hco3_mmol_l"], "current_vbg.hco3_mmol_l"),
         hco3_basis=_enum(Hco3Basis, data["hco3_basis"], "current_vbg.hco3_basis"),
         base_excess_mmol_l=_optional_number(
@@ -127,9 +127,11 @@ def _current_vbg(value: object) -> CurrentVbg:
 def _chemistry(value: object) -> CurrentChemistry:
     data = _object(value, _CHEMISTRY_KEYS, "current_chemistry")
     return CurrentChemistry(
-        sodium_mmol_l=_number(data["sodium_mmol_l"], "current_chemistry.sodium_mmol_l"),
-        chloride_mmol_l=_number(data["chloride_mmol_l"], "current_chemistry.chloride_mmol_l"),
-        serum_total_co2_mmol_l=_number(
+        sodium_mmol_l=_optional_number(data["sodium_mmol_l"], "current_chemistry.sodium_mmol_l"),
+        chloride_mmol_l=_optional_number(
+            data["chloride_mmol_l"], "current_chemistry.chloride_mmol_l"
+        ),
+        serum_total_co2_mmol_l=_optional_number(
             data["serum_total_co2_mmol_l"], "current_chemistry.serum_total_co2_mmol_l"
         ),
         albumin_g_l=_optional_number(data["albumin_g_l"], "current_chemistry.albumin_g_l"),

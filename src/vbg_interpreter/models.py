@@ -9,8 +9,8 @@ from enum import StrEnum
 from vbg_interpreter.serialization import to_primitive
 from vbg_interpreter.version import VERSION
 
-VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/1.0"
-VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/1.0"
+VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/2.0"
+VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/2.0"
 
 
 class ExplorerInputError(ValueError):
@@ -37,6 +37,21 @@ class Hco3Basis(StrEnum):
     REPORTED = "REPORTED"
     CALCULATED = "CALCULATED"
     UNKNOWN = "UNKNOWN"
+
+
+class GasValueOrigin(StrEnum):
+    """Whether a completed venous-gas coordinate was supplied or calculated."""
+
+    SUPPLIED = "SUPPLIED"
+    DERIVED_HENDERSON_HASSELBALCH = "DERIVED_HENDERSON_HASSELBALCH"
+
+
+class VenousOrientationCode(StrEnum):
+    """Descriptive pH orientation; never a Boston process classification."""
+
+    BELOW_RULESET_REFERENCE_BAND = "BELOW_RULESET_REFERENCE_BAND"
+    WITHIN_RULESET_REFERENCE_BAND = "WITHIN_RULESET_REFERENCE_BAND"
+    ABOVE_RULESET_REFERENCE_BAND = "ABOVE_RULESET_REFERENCE_BAND"
 
 
 class SpecimenType(StrEnum):
@@ -84,20 +99,12 @@ class CandidateRegionStatus(StrEnum):
 
 
 class CandidateRegionReasonCode(StrEnum):
-    MISSING_SAME_SAMPLE_VENOUS_SATURATION = "MISSING_SAME_SAMPLE_VENOUS_SATURATION"
-    SPECIMEN_TYPE_UNKNOWN = "SPECIMEN_TYPE_UNKNOWN"
     SPECIMEN_OUTSIDE_PERIPHERAL_VENOUS_SCOPE = "SPECIMEN_OUTSIDE_PERIPHERAL_VENOUS_SCOPE"
-    DRAW_SITE_UNKNOWN = "DRAW_SITE_UNKNOWN"
     DRAW_SITE_OUTSIDE_UPPER_EXTREMITY_SCOPE = "DRAW_SITE_OUTSIDE_UPPER_EXTREMITY_SCOPE"
-    PERFUSION_OR_HEMODYNAMIC_STATUS_UNKNOWN = "PERFUSION_OR_HEMODYNAMIC_STATUS_UNKNOWN"
     KNOWN_POOR_PERFUSION_OR_HEMODYNAMIC_INSTABILITY = (
         "KNOWN_POOR_PERFUSION_OR_HEMODYNAMIC_INSTABILITY"
     )
-    RECENT_VENTILATION_OR_TREATMENT_CHANGE_UNKNOWN = (
-        "RECENT_VENTILATION_OR_TREATMENT_CHANGE_UNKNOWN"
-    )
     RECENT_VENTILATION_OR_TREATMENT_CHANGE = "RECENT_VENTILATION_OR_TREATMENT_CHANGE"
-    PREANALYTIC_STATUS_UNKNOWN = "PREANALYTIC_STATUS_UNKNOWN"
     MATERIAL_PREANALYTIC_CONCERN = "MATERIAL_PREANALYTIC_CONCERN"
     NONFINITE_MODEL_OUTPUT = "NONFINITE_MODEL_OUTPUT"
     NONPOSITIVE_ESTIMATED_PH = "NONPOSITIVE_ESTIMATED_PH"
@@ -109,6 +116,15 @@ class CandidateRegionReasonCode(StrEnum):
 
 class CandidateRegionWarningCode(StrEnum):
     SATURATION_ABOVE_SIMPLIFIED_REFERENCE = "SATURATION_ABOVE_SIMPLIFIED_REFERENCE"
+    GENERIC_MODEL_WITH_UNKNOWN_SPECIMEN = "GENERIC_MODEL_WITH_UNKNOWN_SPECIMEN"
+    GENERIC_MODEL_WITH_UNKNOWN_DRAW_SITE = "GENERIC_MODEL_WITH_UNKNOWN_DRAW_SITE"
+    GENERIC_MODEL_WITH_UNKNOWN_PERFUSION_CONTEXT = "GENERIC_MODEL_WITH_UNKNOWN_PERFUSION_CONTEXT"
+    GENERIC_MODEL_WITH_UNKNOWN_VENTILATION_CONTEXT = (
+        "GENERIC_MODEL_WITH_UNKNOWN_VENTILATION_CONTEXT"
+    )
+    GENERIC_MODEL_WITH_UNKNOWN_PREANALYTIC_CONTEXT = (
+        "GENERIC_MODEL_WITH_UNKNOWN_PREANALYTIC_CONTEXT"
+    )
 
 
 class LimitationCode(StrEnum):
@@ -129,6 +145,20 @@ class LimitationCode(StrEnum):
     INTERVENING_CHANGE_UNKNOWN = "INTERVENING_CHANGE_UNKNOWN"
     INTERVENING_CHANGE_REPORTED = "INTERVENING_CHANGE_REPORTED"
     BOSTON_STATE_SPACE_CERTIFICATION_FAILED = "BOSTON_STATE_SPACE_CERTIFICATION_FAILED"
+    GENERIC_POPULATION_OFFSET_NOT_INDIVIDUAL_CORRECTION = (
+        "GENERIC_POPULATION_OFFSET_NOT_INDIVIDUAL_CORRECTION"
+    )
+    VENOUS_ONLY_ORIENTATION = "VENOUS_ONLY_ORIENTATION"
+    HCO3_INPUT_DISCORDANT_WITH_PH_PCO2 = "HCO3_INPUT_DISCORDANT_WITH_PH_PCO2"
+    ANION_GAP_NOT_EVALUABLE_MISSING_OPERANDS = "ANION_GAP_NOT_EVALUABLE_MISSING_OPERANDS"
+    DERIVED_VENOUS_AXIS_OUTSIDE_POPULATION_MODEL_EVALUATION = (
+        "DERIVED_VENOUS_AXIS_OUTSIDE_POPULATION_MODEL_EVALUATION"
+    )
+    GENERIC_STUDY_RANGE_NOT_CALIBRATED_PREDICTION_INTERVAL = (
+        "GENERIC_STUDY_RANGE_NOT_CALIBRATED_PREDICTION_INTERVAL"
+    )
+    GENERIC_AXES_NOT_JOINTLY_VALIDATED = "GENERIC_AXES_NOT_JOINTLY_VALIDATED"
+    GENERIC_SOURCE_APPLICABILITY_UNKNOWN = "GENERIC_SOURCE_APPLICABILITY_UNKNOWN"
 
 
 class InformationNeedCode(StrEnum):
@@ -136,6 +166,8 @@ class InformationNeedCode(StrEnum):
         "ARTERIAL_BLOOD_GAS_IF_ARTERIAL_CONFIRMATION_REQUIRED"
     )
     SAME_SAMPLE_VENOUS_SATURATION = "SAME_SAMPLE_VENOUS_SATURATION"
+    MEASURED_VENOUS_PH = "MEASURED_VENOUS_PH"
+    MEASURED_VENOUS_PCO2 = "MEASURED_VENOUS_PCO2"
     PERIPHERAL_UPPER_EXTREMITY_SPECIMEN_AND_SITE = "PERIPHERAL_UPPER_EXTREMITY_SPECIMEN_AND_SITE"
     PERFUSION_AND_HEMODYNAMIC_CONTEXT = "PERFUSION_AND_HEMODYNAMIC_CONTEXT"
     VENTILATION_OR_TREATMENT_CHANGE_CONTEXT = "VENTILATION_OR_TREATMENT_CHANGE_CONTEXT"
@@ -143,9 +175,14 @@ class InformationNeedCode(StrEnum):
     ALBUMIN = "ALBUMIN"
     BASE_EXCESS = "BASE_EXCESS"
     COMPARABLE_PRIOR_GAS_OR_CHEMISTRY = "COMPARABLE_PRIOR_GAS_OR_CHEMISTRY"
+    SODIUM = "SODIUM"
+    CHLORIDE = "CHLORIDE"
+    SERUM_TOTAL_CO2 = "SERUM_TOTAL_CO2"
 
 
 class ChemistryStatus(StrEnum):
+    NOT_PROVIDED = "NOT_PROVIDED"
+    PARTIAL = "PARTIAL"
     COMPLETED = "COMPLETED"
 
 
@@ -291,9 +328,9 @@ class SaturationInput:
 
 @dataclass(frozen=True, slots=True)
 class CurrentVbg:
-    ph: float
-    pco2: float
-    pco2_unit: Pco2Unit
+    ph: float | None = None
+    pco2: float | None = None
+    pco2_unit: Pco2Unit | None = None
     hco3_mmol_l: float | None = None
     hco3_basis: Hco3Basis = Hco3Basis.UNKNOWN
     base_excess_mmol_l: float | None = None
@@ -302,9 +339,16 @@ class CurrentVbg:
     draw_site: DrawSite = DrawSite.UNKNOWN
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "ph", _positive("current_vbg.ph", self.ph))
-        object.__setattr__(self, "pco2", _positive("current_vbg.pco2", self.pco2))
-        _require_enum("current_vbg.pco2_unit", self.pco2_unit, Pco2Unit)
+        if self.ph is not None:
+            object.__setattr__(self, "ph", _positive("current_vbg.ph", self.ph))
+        if self.pco2 is None:
+            if self.pco2_unit is not None:
+                raise ExplorerInputError("current_vbg.pco2_unit requires PCO2.")
+        else:
+            object.__setattr__(self, "pco2", _positive("current_vbg.pco2", self.pco2))
+            if self.pco2_unit is None:
+                raise ExplorerInputError("current_vbg.pco2_unit is required with PCO2.")
+            _require_enum("current_vbg.pco2_unit", self.pco2_unit, Pco2Unit)
         _require_enum("current_vbg.hco3_basis", self.hco3_basis, Hco3Basis)
         _require_enum("current_vbg.specimen_type", self.specimen_type, SpecimenType)
         _require_enum("current_vbg.draw_site", self.draw_site, DrawSite)
@@ -329,6 +373,10 @@ class CurrentVbg:
             self.venous_o2_saturation, SaturationInput
         ):
             raise ExplorerInputError("current_vbg.venous_o2_saturation must be SaturationInput.")
+        if sum(value is not None for value in (self.ph, self.pco2, self.hco3_mmol_l)) < 2:
+            raise ExplorerInputError(
+                "current_vbg requires at least two of pH, PCO2, and blood-gas HCO3."
+            )
 
     def to_dict(self) -> dict[str, object]:
         return _as_dict(self)
@@ -336,27 +384,32 @@ class CurrentVbg:
 
 @dataclass(frozen=True, slots=True)
 class CurrentChemistry:
-    sodium_mmol_l: float
-    chloride_mmol_l: float
-    serum_total_co2_mmol_l: float
+    sodium_mmol_l: float | None = None
+    chloride_mmol_l: float | None = None
+    serum_total_co2_mmol_l: float | None = None
     albumin_g_l: float | None = None
     lactate_mmol_l: float | None = None
     relationship_to_vbg: ChemistryTimeRelationship = ChemistryTimeRelationship.UNKNOWN
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self, "sodium_mmol_l", _positive("chemistry.sodium_mmol_l", self.sodium_mmol_l)
-        )
-        object.__setattr__(
-            self,
-            "chloride_mmol_l",
-            _positive("chemistry.chloride_mmol_l", self.chloride_mmol_l),
-        )
-        object.__setattr__(
-            self,
-            "serum_total_co2_mmol_l",
-            _nonnegative("chemistry.serum_total_co2_mmol_l", self.serum_total_co2_mmol_l),
-        )
+        if self.sodium_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "sodium_mmol_l",
+                _positive("chemistry.sodium_mmol_l", self.sodium_mmol_l),
+            )
+        if self.chloride_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "chloride_mmol_l",
+                _positive("chemistry.chloride_mmol_l", self.chloride_mmol_l),
+            )
+        if self.serum_total_co2_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "serum_total_co2_mmol_l",
+                _nonnegative("chemistry.serum_total_co2_mmol_l", self.serum_total_co2_mmol_l),
+            )
         _require_enum(
             "chemistry.relationship_to_vbg", self.relationship_to_vbg, ChemistryTimeRelationship
         )
@@ -372,9 +425,14 @@ class CurrentChemistry:
                 "lactate_mmol_l",
                 _nonnegative("chemistry.lactate_mmol_l", self.lactate_mmol_l),
             )
-        anion_gap = self.sodium_mmol_l - self.chloride_mmol_l - self.serum_total_co2_mmol_l
-        if not math.isfinite(anion_gap):
-            raise ExplorerInputError("chemistry values must yield a finite anion gap.")
+        if (
+            self.sodium_mmol_l is not None
+            and self.chloride_mmol_l is not None
+            and self.serum_total_co2_mmol_l is not None
+        ):
+            anion_gap = self.sodium_mmol_l - self.chloride_mmol_l - self.serum_total_co2_mmol_l
+            if not math.isfinite(anion_gap):
+                raise ExplorerInputError("chemistry values must yield a finite anion gap.")
 
     def to_dict(self) -> dict[str, object]:
         return _as_dict(self)
@@ -500,7 +558,7 @@ class PriorObservation:
 @dataclass(frozen=True, slots=True)
 class VbgExplorerRequest:
     current_vbg: CurrentVbg
-    current_chemistry: CurrentChemistry
+    current_chemistry: CurrentChemistry = field(default_factory=CurrentChemistry)
     context: ExplorerContext = field(default_factory=ExplorerContext)
     prior_observation: PriorObservation | None = None
     schema_version: str = field(init=False, default=VBG_EXPLORER_REQUEST_SCHEMA_VERSION)
@@ -539,16 +597,115 @@ class VbgExplorerRequest:
 
 @dataclass(frozen=True, slots=True)
 class NormalizedVbg:
-    ph: float
-    pco2_input: float
-    pco2_unit: Pco2Unit
-    pco2_mmhg: float
+    ph: float | None
+    pco2_input: float | None
+    pco2_unit: Pco2Unit | None
+    pco2_mmhg: float | None
     hco3_mmol_l: float | None
     hco3_basis: Hco3Basis
     base_excess_mmol_l: float | None
     venous_o2_saturation: SaturationInput | None
     specimen_type: SpecimenType
     draw_site: DrawSite
+
+    def to_dict(self) -> dict[str, object]:
+        return _as_dict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class CompletedVenousGas:
+    """A complete pH--PCO2--HCO3 coordinate derived from at least two inputs."""
+
+    ph: float
+    pco2_mmhg: float
+    hco3_mmol_l: float
+    ph_origin: GasValueOrigin
+    pco2_origin: GasValueOrigin
+    hco3_origin: GasValueOrigin
+    hco3_ph_pco2_comparator_mmol_l: float | None = None
+    hco3_discrepancy_mmol_l: float | None = None
+    limitation_codes: tuple[LimitationCode, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "ph", _positive("completed_venous_gas.ph", self.ph))
+        object.__setattr__(
+            self,
+            "pco2_mmhg",
+            _positive("completed_venous_gas.pco2_mmhg", self.pco2_mmhg),
+        )
+        object.__setattr__(
+            self,
+            "hco3_mmol_l",
+            _positive("completed_venous_gas.hco3_mmol_l", self.hco3_mmol_l),
+        )
+        for name in ("ph_origin", "pco2_origin", "hco3_origin"):
+            _require_enum(f"completed_venous_gas.{name}", getattr(self, name), GasValueOrigin)
+        if self.hco3_ph_pco2_comparator_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "hco3_ph_pco2_comparator_mmol_l",
+                _positive(
+                    "completed_venous_gas.hco3_ph_pco2_comparator_mmol_l",
+                    self.hco3_ph_pco2_comparator_mmol_l,
+                ),
+            )
+        if self.hco3_discrepancy_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "hco3_discrepancy_mmol_l",
+                _finite(
+                    "completed_venous_gas.hco3_discrepancy_mmol_l",
+                    self.hco3_discrepancy_mmol_l,
+                ),
+            )
+        if (self.hco3_ph_pco2_comparator_mmol_l is None) != (self.hco3_discrepancy_mmol_l is None):
+            raise ExplorerInputError(
+                "completed_venous_gas comparator and discrepancy must be present together."
+            )
+        if (
+            all(
+                origin is GasValueOrigin.SUPPLIED
+                for origin in (self.ph_origin, self.pco2_origin, self.hco3_origin)
+            )
+            and self.hco3_ph_pco2_comparator_mmol_l is None
+        ):
+            raise ExplorerInputError(
+                "Three supplied gas values require an HCO3 comparator and discrepancy."
+            )
+        if (
+            any(
+                origin is GasValueOrigin.DERIVED_HENDERSON_HASSELBALCH
+                for origin in (self.ph_origin, self.pco2_origin, self.hco3_origin)
+            )
+            and self.hco3_ph_pco2_comparator_mmol_l is not None
+        ):
+            raise ExplorerInputError(
+                "Derived gas coordinates must not carry an all-supplied HCO3 comparator."
+            )
+        if not all(isinstance(code, LimitationCode) for code in self.limitation_codes):
+            raise ExplorerInputError(
+                "completed_venous_gas.limitation_codes must be LimitationCode."
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        return _as_dict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class VenousOrientation:
+    """An intentionally descriptive venous pH orientation."""
+
+    ph_reference_orientation: VenousOrientationCode
+    limitation_codes: tuple[LimitationCode, ...] = (LimitationCode.VENOUS_ONLY_ORIENTATION,)
+
+    def __post_init__(self) -> None:
+        _require_enum(
+            "venous_orientation.ph_reference_orientation",
+            self.ph_reference_orientation,
+            VenousOrientationCode,
+        )
+        if not all(isinstance(code, LimitationCode) for code in self.limitation_codes):
+            raise ExplorerInputError("venous_orientation.limitation_codes must be LimitationCode.")
 
     def to_dict(self) -> dict[str, object]:
         return _as_dict(self)
@@ -655,7 +812,10 @@ class CandidateArterialRegion:
     paco2_interval: NumericInterval | None = None
     ph_evidence: EvidenceDescriptor | None = None
     paco2_evidence: EvidenceDescriptor | None = None
-    uncertainty_profile_id: str | None = None
+    ph_model_id: str | None = None
+    paco2_model_id: str | None = None
+    ph_profile_id: str | None = None
+    paco2_profile_id: str | None = None
     warning_codes: tuple[CandidateRegionWarningCode, ...] = ()
     limitation_codes: tuple[LimitationCode, ...] = ()
 
@@ -675,16 +835,23 @@ class CandidateArterialRegion:
             raise ExplorerInputError(
                 "candidate_region.limitation_codes must contain LimitationCode."
             )
-        payload = (
+        modeled_values = (
             self.point,
             self.ph_interval,
             self.paco2_interval,
+        )
+        component_metadata = (
             self.ph_evidence,
             self.paco2_evidence,
-            self.uncertainty_profile_id,
+            self.ph_model_id,
+            self.paco2_model_id,
+            self.ph_profile_id,
+            self.paco2_profile_id,
         )
         if self.status is CandidateRegionStatus.AVAILABLE:
-            if self.reason_codes or any(value is None for value in payload):
+            if self.reason_codes or any(
+                value is None for value in modeled_values + component_metadata
+            ):
                 raise ExplorerInputError(
                     "An available candidate region requires a complete model payload."
                 )
@@ -700,17 +867,42 @@ class CandidateArterialRegion:
                 raise ExplorerInputError(
                     "An available candidate region requires evidence metadata."
                 )
+            for name in ("ph_model_id", "paco2_model_id", "ph_profile_id", "paco2_profile_id"):
+                value = getattr(self, name)
+                if not isinstance(value, str) or not value:
+                    raise ExplorerInputError(f"An available candidate region requires {name}.")
+        elif self.status is CandidateRegionStatus.MODEL_DOMAIN_REFUSAL:
+            if not self.reason_codes:
+                raise ExplorerInputError("A refused candidate region requires typed reasons.")
+            if any(value is not None for value in modeled_values):
+                raise ExplorerInputError(
+                    "A refused candidate region must not carry modeled values."
+                )
+            if any(value is None for value in component_metadata):
+                raise ExplorerInputError(
+                    "A refused candidate region requires attempted component metadata."
+                )
+            if not isinstance(self.ph_evidence, EvidenceDescriptor) or not isinstance(
+                self.paco2_evidence, EvidenceDescriptor
+            ):
+                raise ExplorerInputError("A refused candidate region requires evidence metadata.")
+            for name in ("ph_model_id", "paco2_model_id", "ph_profile_id", "paco2_profile_id"):
+                value = getattr(self, name)
+                if not isinstance(value, str) or not value:
+                    raise ExplorerInputError(f"A refused candidate region requires {name}.")
+            if self.warning_codes or self.limitation_codes:
+                raise ExplorerInputError(
+                    "A refused candidate region must not carry model warnings or limitations."
+                )
         else:
             if not self.reason_codes:
                 raise ExplorerInputError("An unavailable candidate region requires typed reasons.")
-            if any(value is not None for value in payload):
+            if any(value is not None for value in modeled_values + component_metadata):
                 raise ExplorerInputError(
-                    "An unavailable candidate region must not carry modeled values."
+                    "An unavailable candidate region must not carry modeled values or metadata."
                 )
             if self.warning_codes or self.limitation_codes:
-                raise ExplorerInputError(
-                    "An unavailable candidate region must not carry model warnings."
-                )
+                raise ExplorerInputError("An unavailable candidate region must not carry warnings.")
 
     def to_dict(self) -> dict[str, object]:
         return _as_dict(self)
@@ -720,14 +912,18 @@ class CandidateArterialRegion:
 class ChemistryInterpretation:
     status: ChemistryStatus
     relationship_to_vbg: ChemistryTimeRelationship
-    serum_total_co2_mmol_l: float
-    anion_gap_mmol_l: float
+    sodium_mmol_l: float | None
+    chloride_mmol_l: float | None
+    serum_total_co2_mmol_l: float | None
+    albumin_g_l: float | None
+    lactate_mmol_l: float | None
+    anion_gap_mmol_l: float | None
     corrected_anion_gap_mmol_l: float | None
     limitation_codes: tuple[LimitationCode, ...]
     stewart_partition: StewartPartitionContext
     identifiable_components: tuple[str, ...]
     nonidentifiable_components: tuple[LimitationCode, ...]
-    anion_gap_metadata: CalculationMetadata
+    anion_gap_metadata: CalculationMetadata | None
     corrected_anion_gap_metadata: CalculationMetadata | None
 
     def __post_init__(self) -> None:
@@ -737,16 +933,22 @@ class ChemistryInterpretation:
             self.relationship_to_vbg,
             ChemistryTimeRelationship,
         )
-        object.__setattr__(
-            self,
-            "serum_total_co2_mmol_l",
-            _nonnegative("chemistry.serum_total_co2_mmol_l", self.serum_total_co2_mmol_l),
-        )
-        object.__setattr__(
-            self,
-            "anion_gap_mmol_l",
-            _finite("chemistry.anion_gap_mmol_l", self.anion_gap_mmol_l),
-        )
+        for name, validator in (
+            ("sodium_mmol_l", _positive),
+            ("chloride_mmol_l", _positive),
+            ("serum_total_co2_mmol_l", _nonnegative),
+            ("albumin_g_l", _nonnegative),
+            ("lactate_mmol_l", _nonnegative),
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, validator(f"chemistry.{name}", value))
+        if self.anion_gap_mmol_l is not None:
+            object.__setattr__(
+                self,
+                "anion_gap_mmol_l",
+                _finite("chemistry.anion_gap_mmol_l", self.anion_gap_mmol_l),
+            )
         if self.corrected_anion_gap_mmol_l is not None:
             object.__setattr__(
                 self,
@@ -758,12 +960,11 @@ class ChemistryInterpretation:
             )
         if not all(isinstance(code, LimitationCode) for code in self.limitation_codes):
             raise ExplorerInputError("chemistry.limitation_codes must contain LimitationCode.")
-        if self.corrected_anion_gap_mmol_l is None and (
-            LimitationCode.ALBUMIN_CORRECTION_NOT_EVALUABLE not in self.limitation_codes
-        ):
-            raise ExplorerInputError("Missing corrected anion gap requires an albumin limitation.")
-        if not isinstance(self.anion_gap_metadata, CalculationMetadata):
-            raise ExplorerInputError("chemistry.anion_gap_metadata must be CalculationMetadata.")
+        if self.anion_gap_mmol_l is None:
+            if self.anion_gap_metadata is not None:
+                raise ExplorerInputError("Missing anion gap must not carry calculation metadata.")
+        elif not isinstance(self.anion_gap_metadata, CalculationMetadata):
+            raise ExplorerInputError("Calculated anion gap requires calculation metadata.")
         if self.corrected_anion_gap_mmol_l is None:
             if self.corrected_anion_gap_metadata is not None:
                 raise ExplorerInputError(
@@ -775,7 +976,14 @@ class ChemistryInterpretation:
             )
         if not isinstance(self.stewart_partition, StewartPartitionContext):
             raise ExplorerInputError("chemistry.stewart_partition must be StewartPartitionContext.")
-        _string_tuple("chemistry.identifiable_components", self.identifiable_components)
+        if any(not isinstance(value, str) or not value for value in self.identifiable_components):
+            raise ExplorerInputError(
+                "chemistry.identifiable_components must contain nonempty strings."
+            )
+        if len(set(self.identifiable_components)) != len(self.identifiable_components):
+            raise ExplorerInputError(
+                "chemistry.identifiable_components must not contain duplicates."
+            )
         if not all(isinstance(code, LimitationCode) for code in self.nonidentifiable_components):
             raise ExplorerInputError(
                 "chemistry.nonidentifiable_components must contain LimitationCode."
@@ -1160,6 +1368,8 @@ class ExplorerProvenance:
 class VbgExplorerResult:
     normalized_input: NormalizedExplorerInput
     observed_vbg: NormalizedVbg
+    completed_venous_gas: CompletedVenousGas
+    venous_orientation: VenousOrientation
     candidate_arterial_region: CandidateArterialRegion
     state_space: StateSpaceResult
     chemistry: ChemistryInterpretation
@@ -1176,6 +1386,10 @@ class VbgExplorerResult:
             raise ExplorerInputError(
                 "observed_vbg must exactly preserve normalized current VBG inputs."
             )
+        if not isinstance(self.completed_venous_gas, CompletedVenousGas):
+            raise ExplorerInputError("completed_venous_gas must be CompletedVenousGas.")
+        if not isinstance(self.venous_orientation, VenousOrientation):
+            raise ExplorerInputError("venous_orientation must be VenousOrientation.")
         if not isinstance(self.candidate_arterial_region, CandidateArterialRegion):
             raise ExplorerInputError("candidate_arterial_region must be CandidateArterialRegion.")
         if not isinstance(self.state_space, StateSpaceResult):

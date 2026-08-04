@@ -37,7 +37,9 @@ def normalize_current_vbg(value: CurrentVbg) -> NormalizedVbg:
         ph=value.ph,
         pco2_input=value.pco2,
         pco2_unit=value.pco2_unit,
-        pco2_mmhg=normalize_pco2_to_mmhg(value.pco2, value.pco2_unit),
+        pco2_mmhg=(
+            None if value.pco2 is None else normalize_pco2_to_mmhg(value.pco2, value.pco2_unit)  # type: ignore[arg-type]
+        ),
         hco3_mmol_l=value.hco3_mmol_l,
         hco3_basis=value.hco3_basis,
         base_excess_mmol_l=value.base_excess_mmol_l,

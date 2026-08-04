@@ -5,7 +5,7 @@
 The repository contains one application:
 
 ```text
-current VBG + current BMP/CMP + optional context + one optional prior observation
+any 2 current VBG coordinates + optional chemistry + optional context + one optional prior observation
                                       ↓
                           VbgExplorerRequest
                                       ↓
@@ -16,20 +16,24 @@ current VBG + current BMP/CMP + optional context + one optional prior observatio
                    static client-side Explorer browser
 ```
 
-The result has independent observed-VBG, candidate-region, state-space, chemistry, and
-longitudinal lanes. The final result synthesizes their limitations and typed information needs
-without flattening provenance. Every serialized result records the Explorer software version;
-the deployed bundle separately records the exact source commit.
+The result has independent observed-VBG, completed-venous-gas, venous-orientation,
+candidate-region, state-space, chemistry, and longitudinal lanes. The final result synthesizes
+their limitations and typed information needs without flattening provenance. Every serialized
+result records the Explorer software version; a deployed bundle separately records the exact
+source commit.
 
 ## Source ownership
 
 - `src/vbg_interpreter/models.py` contains the single typed request/result contracts.
 - `normalize.py` converts only explicit input units at the boundary.
-- `candidate_region.py` owns the gated Farkas pH–PaCO₂ sensitivity region.
+- `venous_gas.py` completes any missing pH/PvCO₂/blood-gas-HCO₃ coordinate and produces only a
+  descriptive venous orientation.
+- `candidate_region.py` owns the generic Bloom-derived pH/PaCO₂ scenario and the gated
+  Farkas/Jörg PaCO₂-only component upgrade.
 - `certified_envelope.py`, `state_categories.py`, and `state_space.py` own exhaustive compatibility
   ruleset enumeration and set predicates.
-- `chemistry.py` owns serum chemistry and its narrow adapter to the upstream structured Stewart
-  partition.
+- `chemistry.py` owns field-by-field serum chemistry and its narrow adapter to the upstream
+  structured Stewart partition.
 - `longitudinal.py` retains prior observations without changing current modeled state space.
 - `interpret.py` is the one public composition entry point.
 - `mapping.py` and `browser_adapter.py` define the strict browser boundary.
@@ -53,6 +57,11 @@ packages under its own filesystem root, and imports the single browser adapter.
 Browser JavaScript may validate form shape and render typed results, but the Python mapping and
 interpreter are authoritative. Browser code does not reconstruct scientific classifications from
 prose or infer values independently.
+
+The browser and mapping require the v2 minimum of any two gas coordinates. They do not require a
+chemistry panel or silently synthesize an omitted chemistry value. The worker receives a strict
+schema-versioned JSON request; it returns origins, model component identities, evidence, warnings,
+and limitations from Python rather than reimplementing them in JavaScript.
 
 ## Privacy and security boundary
 
