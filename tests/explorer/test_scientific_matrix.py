@@ -81,7 +81,7 @@ def _request(
             "B_missing_saturation",
             _request(vbg=replace(_BASE_VBG, venous_o2_saturation=None)),
             lambda result: (
-                result.candidate_arterial_region.status is CandidateRegionStatus.UNAVAILABLE
+                result.candidate_arterial_region.status is CandidateRegionStatus.AVAILABLE
                 and result.chemistry.anion_gap_mmol_l == 11
             ),
         ),

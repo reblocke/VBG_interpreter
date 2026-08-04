@@ -62,3 +62,31 @@ Publication is conditional on all of the following:
 7. Only after the public cutover passes is the private historical repository archived read-only.
 
 This release decision does not change any evidence tier or scientific limitation.
+
+## v0.2.0 source and Pages publication supplement
+
+### Decision record
+
+- Decision date: 2026-08-04
+- Owner/decision maker: Brian Locke (`github:reblocke`)
+- Publication: `v0.2.0` public research preview
+- Authorized surfaces: reviewed source merged through a pull request into the history-free public
+  repository and the commit-bound static GitHub Pages deployment
+- Outside this authorization: creating a `v0.2.0` tag or GitHub Release
+
+### Reviewed change
+
+The v0.2.0 review additionally covered progressive completion from any two of venous pH, PvCO₂,
+and blood-gas HCO₃; the generic Bloom-derived scenario envelope; the fully gated Farkas/Jörg
+PaCO₂ component; supplied-versus-derived provenance; independently optional chemistry; and the
+static browser contract. The scientific-source review added bibliographic attribution and
+derivation boundaries without copying source full text, figures, tables, or publisher layouts.
+
+The owner authorizes merge and automatic Pages deployment only after actionable review findings
+are addressed and the required `verify` and `validation` checks pass on the exact candidate commit.
+The deployment must retain the v0.1 controls for public visibility, exact-commit binding,
+client-side/no-persistence behavior, synthetic-only testing, and conservative clinical scope.
+
+This supplement does not authorize clinical use, create external validation, change an evidence
+tier, add a rights or freedom-to-operate opinion, or authorize publication of private history,
+governed records, PHI, credentials, or protected data.

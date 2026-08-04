@@ -172,6 +172,47 @@ def test_optional_inputs_are_progressively_disclosed_and_not_required() -> None:
     assert optional_groups
 
 
+def test_current_contract_accepts_two_gas_values_and_optional_chemistry() -> None:
+    inventory = _document_inventory()
+    controls = {
+        attributes["id"]: attributes
+        for tag, attributes in inventory.tags
+        if tag in {"input", "select"} and "id" in attributes
+    }
+    for field_id in (
+        "current-ph",
+        "current-pco2",
+        "current-hco3",
+        "sodium",
+        "chloride",
+        "serum-total-co2",
+        "albumin",
+        "lactate",
+    ):
+        assert field_id in controls
+        assert "required" not in controls[field_id]
+
+    optional_current = next(
+        group
+        for group in inventory.details
+        if group["attributes"].get("id") == "optional-current-details"
+    )
+    optional_ids = {
+        attributes["id"] for _, attributes in optional_current["elements"] if "id" in attributes
+    }
+    assert "current-hco3" not in optional_ids
+    assert "hco3-basis" not in optional_ids
+
+    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
+    assert 'REQUEST_SCHEMA_VERSION = "vbg_explorer_request/2.0"' in app
+    assert re.search(
+        r"\[ph,\s*pco2,\s*hco3\]\.filter\(\(value\)\s*=>\s*value\s*!==\s*null\)"
+        r"\.length\s*<\s*2",
+        app,
+    )
+    assert "pco2_unit: pco2 === null ? null" in app
+
+
 def test_state_space_has_an_accessible_visual_and_equivalent_table() -> None:
     html = INDEX_PATH.read_text(encoding="utf-8")
     document_text = _normalized_document_text()

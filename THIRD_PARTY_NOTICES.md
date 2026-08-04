@@ -20,22 +20,30 @@ the [upstream repository](https://github.com/reblocke/stewart-light) for its sou
 
 ## Scientific sources
 
+- Bloom BM, Grundlingh J, Bestwick JP, Harris T. The role of venous blood gas in the Emergency
+  Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine.*
+  2014;21(2):81–88. [doi:10.1097/MEJ.0b013e32836437cf](https://doi.org/10.1097/MEJ.0b013e32836437cf).
+  The bibliographic record and the signed numerical constants used by the generic v2 sensitivity
+  scenario were reviewed 2026-08-04. It is cited for population agreement summaries only, not for
+  patient-specific conversion, joint pH–PaCO₂ coverage, or validation of the Explorer. No source
+  artifact, full text, table, figure, or layout is included.
 - Jörg M, Öster M, Wretborn J, Wilhelms DB. Agreement of pCO₂ in venous to arterial blood gas
   conversion models in undifferentiated emergency patients. *Intensive Care Med Exp.* 2023;11:80.
   [doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w). CC BY 4.0. It is
-  cited for the Farkas PaCO₂ formula and component-specific evaluation boundary, not validation of
-  modeled pH or the full Explorer.
+  cited for the gated Farkas PaCO₂ component and its component-specific evaluation boundary, not
+  validation of generic modeled pH, a derived PaCO₂ axis, or the full Explorer.
 - Krbec M, et al. Non-carbonic buffer power of whole blood is increased in experimental metabolic
   acidosis: an in-vitro study. *Front Physiol.* 2022;13:1009378.
   [doi:10.3389/fphys.2022.1009378](https://doi.org/10.3389/fphys.2022.1009378). CC BY 4.0. It is
   cited as an open verification of the retained Henderson–Hasselbalch constants.
-- The Farkas pH component is retained from an unpublished/redacted 2012 derivation manuscript
-  shared by its author at
+- The retained Farkas **PaCO₂** equation has historical provenance in an unpublished/redacted 2012
+  derivation manuscript shared by its author at
   `https://emcrit.org/wp-content/uploads/2017/01/ABGVBGmsREDACTED.pdf` (retrieved 2026-08-02).
   No explicit reuse license was found for that manuscript. This repository independently
   re-expresses only the equations/constants approved by the owner; it does not redistribute the
-  manuscript, its prose, figures, tables, or layout. The component remains labeled
-  `DERIVATION_ONLY`, and this release does not claim peer-reviewed external pH validation.
+  manuscript, its prose, figures, tables, or layout. The v2 Explorer does not use a Farkas pH
+  component. Its generic pH model remains `DERIVATION_ONLY`, and this source record does not claim
+  peer-reviewed external pH validation.
 - The Boston-style classifications are repository-authored compatibility implementations of
   common acid–base rules. They are not presented as copied source text, an adjudicated authority,
   or a clinical gold standard.

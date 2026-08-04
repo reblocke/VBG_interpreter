@@ -81,7 +81,7 @@ jobs:
           manifest = json.loads(Path(".build/web/release-manifest.json").read_text())
           assert manifest["build_binding"] == "SOURCE_COMMIT"
           assert manifest["source_commit"] == os.environ["GITHUB_SHA"]
-          assert manifest["version"] == "0.1.0"
+          assert manifest["version"] == "0.2.0"
           PY
 
       - name: Upload Pages artifact

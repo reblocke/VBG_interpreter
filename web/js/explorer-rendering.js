@@ -1,5 +1,5 @@
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-const RESULT_SCHEMA_VERSION = "vbg_explorer_result/1.0";
+const RESULT_SCHEMA_VERSION = "vbg_explorer_result/2.0";
 
 const refs = {
   empty: document.querySelector("#results-empty"),
@@ -108,20 +108,21 @@ function codeList(codes, emptyText) {
   return list;
 }
 
-function renderObserved(observed) {
+function renderObserved(observed, completedGas, venousOrientation) {
   refs.observed.replaceChildren();
   if (!isRecord(observed)) {
     refs.observed.append(element("p", "Observed VBG data were not returned.", "structured-empty"));
     return;
   }
 
+  refs.observed.append(element("h4", "Measured venous inputs"));
   refs.observed.append(
     metricGrid([
-      ["Venous pH", observed.ph],
-      ["PvCO₂ (input)", observed.pco2_input ?? observed.pco2],
-      ["PvCO₂ unit", observed.pco2_unit],
-      ["PvCO₂ (mmHg)", observed.pco2_mmhg],
-      ["HCO₃ (mmol/L)", observed.hco3_mmol_l],
+      ["Measured venous pH", observed.ph],
+      ["Measured PvCO₂ (input)", observed.pco2_input ?? observed.pco2],
+      ["Measured PvCO₂ unit", observed.pco2_unit],
+      ["PvCO₂ after unit conversion (mmHg)", observed.pco2_mmhg],
+      ["Supplied blood-gas HCO₃ (mmol/L)", observed.hco3_mmol_l],
       ["HCO₃ basis", observed.hco3_basis],
       ["Venous base excess (mmol/L)", observed.base_excess_mmol_l],
       ["Specimen type", observed.specimen_type],
@@ -139,6 +140,71 @@ function renderObserved(observed) {
         )}); normalized ${formattedScalar(saturation.normalized_percentage_points)} percentage points.`,
         "evidence-note",
       ),
+    );
+  }
+
+  if (!isRecord(completedGas)) {
+    refs.observed.append(
+      element("p", "The completed venous gas was not returned.", "structured-empty"),
+    );
+    return;
+  }
+
+  refs.observed.append(
+    element("h4", "Completed venous gas — never arterial"),
+    element(
+      "p",
+      "This algebraic completion derives only a missing pH, PvCO₂, or blood-gas HCO₃ coordinate. Supplied values remain distinct from derived values.",
+      "evidence-note",
+    ),
+    metricGrid([
+      ["Venous pH", completedGas.ph],
+      [
+        "Venous pH origin",
+        typeof completedGas.ph_origin === "string"
+          ? humanize(completedGas.ph_origin)
+          : completedGas.ph_origin,
+      ],
+      ["PvCO₂ (mmHg)", completedGas.pco2_mmhg],
+      [
+        "PvCO₂ origin",
+        typeof completedGas.pco2_origin === "string"
+          ? humanize(completedGas.pco2_origin)
+          : completedGas.pco2_origin,
+      ],
+      ["Blood-gas HCO₃ (mmol/L)", completedGas.hco3_mmol_l],
+      [
+        "Blood-gas HCO₃ origin",
+        typeof completedGas.hco3_origin === "string"
+          ? humanize(completedGas.hco3_origin)
+          : completedGas.hco3_origin,
+      ],
+      ["HCO₃ from supplied pH and PvCO₂ (mmol/L)", completedGas.hco3_ph_pco2_comparator_mmol_l],
+      ["Reported-minus-comparator HCO₃ (mmol/L)", completedGas.hco3_discrepancy_mmol_l],
+    ]),
+  );
+  if (isRecord(venousOrientation)) {
+    refs.observed.append(
+      element("h4", "Venous-only pH orientation"),
+      metricGrid([
+        [
+          "pH orientation relative to ruleset reference band",
+          typeof venousOrientation.ph_reference_orientation === "string"
+            ? humanize(venousOrientation.ph_reference_orientation)
+            : venousOrientation.ph_reference_orientation,
+        ],
+      ]),
+      element(
+        "p",
+        "This descriptive venous orientation is not an arterial Boston classification.",
+        "evidence-note",
+      ),
+    );
+  }
+  if (Array.isArray(completedGas.limitation_codes) && completedGas.limitation_codes.length) {
+    refs.observed.append(
+      element("h4", "Completed-gas limitations"),
+      codeList(completedGas.limitation_codes, "None returned"),
     );
   }
 }
@@ -173,21 +239,40 @@ function renderCandidate(candidate) {
   const phInterval = isRecord(candidate.ph_interval) ? candidate.ph_interval : {};
   const paco2Interval = isRecord(candidate.paco2_interval) ? candidate.paco2_interval : {};
   refs.candidate.append(
+    element(
+      "p",
+      "Best-guess arterial orientation only: this is not a measured arterial sample or an individual correction.",
+      "evidence-note",
+    ),
     metricGrid([
-      ["Modeled arterial pH point", point.ph],
-      ["Modeled PaCO₂ point (mmHg)", point.paco2_mmhg],
-      ["pH interval lower", phInterval.lower],
-      ["pH interval upper", phInterval.upper],
-      ["PaCO₂ interval lower (mmHg)", paco2Interval.lower],
-      ["PaCO₂ interval upper (mmHg)", paco2Interval.upper],
-      ["Uncertainty profile", candidate.uncertainty_profile_id],
+      ["Best-guess arterial pH orientation", point.ph],
+      ["Best-guess PaCO₂ orientation (mmHg)", point.paco2_mmhg],
+      ["pH scenario lower", phInterval.lower],
+      ["pH scenario upper", phInterval.upper],
+      ["PaCO₂ scenario lower (mmHg)", paco2Interval.lower],
+      ["PaCO₂ scenario upper (mmHg)", paco2Interval.upper],
+      ["pH component model", candidate.ph_model_id],
+      ["PaCO₂ component model", candidate.paco2_model_id],
+      ["pH scenario profile", candidate.ph_profile_id],
+      ["PaCO₂ scenario profile", candidate.paco2_profile_id],
     ]),
     element("p", evidenceText("Modeled pH", candidate.ph_evidence), "evidence-note"),
     element("p", evidenceText("Modeled PaCO₂", candidate.paco2_evidence), "evidence-note"),
+    element(
+      "p",
+      "A generic component uses a published study-level agreement-extrema scenario envelope. It is not a probability, confidence, or calibrated prediction interval, and the pH and PaCO₂ axes are not jointly validated.",
+      "evidence-note",
+    ),
   );
 
   if (Array.isArray(candidate.warning_codes) && candidate.warning_codes.length) {
     refs.candidate.append(element("h4", "Model warnings"), codeList(candidate.warning_codes, "None"));
+  }
+  if (Array.isArray(candidate.limitation_codes) && candidate.limitation_codes.length) {
+    refs.candidate.append(
+      element("h4", "Model limitations"),
+      codeList(candidate.limitation_codes, "None returned"),
+    );
   }
 }
 
@@ -661,7 +746,11 @@ function renderChemistry(chemistry) {
           ? humanize(chemistry.relationship_to_vbg)
           : chemistry.relationship_to_vbg,
       ],
+      ["Sodium (mmol/L)", chemistry.sodium_mmol_l],
+      ["Chloride (mmol/L)", chemistry.chloride_mmol_l],
       ["Serum total CO₂ (mmol/L)", chemistry.serum_total_co2_mmol_l],
+      ["Albumin (g/L)", chemistry.albumin_g_l],
+      ["Lactate (mmol/L)", chemistry.lactate_mmol_l],
       ["Anion gap (mmol/L)", chemistry.anion_gap_mmol_l],
       ["Albumin-corrected anion gap (mmol/L)", chemistry.corrected_anion_gap_mmol_l],
     ]),
@@ -768,6 +857,8 @@ function resultObject(payload) {
   if (
     result.schema_version !== RESULT_SCHEMA_VERSION ||
     !isRecord(result.observed_vbg) ||
+    !isRecord(result.completed_venous_gas) ||
+    !isRecord(result.venous_orientation) ||
     !isRecord(result.candidate_arterial_region) ||
     !isRecord(result.state_space) ||
     !isRecord(result.chemistry) ||
@@ -808,7 +899,11 @@ export function renderExplorerResult(payload) {
   }
 
   renderInterpretationSummary(result.state_space, result.candidate_arterial_region);
-  renderObserved(result.observed_vbg ?? result.normalized_input?.current_vbg);
+  renderObserved(
+    result.observed_vbg ?? result.normalized_input?.current_vbg,
+    result.completed_venous_gas,
+    result.venous_orientation,
+  );
   renderCandidate(result.candidate_arterial_region);
   renderStateSpace(result.state_space, result.candidate_arterial_region);
   renderChemistry(result.chemistry);

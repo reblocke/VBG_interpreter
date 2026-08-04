@@ -7,17 +7,22 @@ import pytest
 from vbg_interpreter.browser_adapter import interpret_browser_request_json_with
 from vbg_interpreter.candidate_region import calculate_candidate_arterial_region
 from vbg_interpreter.chemistry import calculate_chemistry_interpretation
+from vbg_interpreter.interpret import interpret_vbg
 from vbg_interpreter.longitudinal import build_longitudinal_context
 from vbg_interpreter.mapping import request_from_json
 from vbg_interpreter.models import (
     CandidateRegionReasonCode,
     CandidateRegionStatus,
+    CandidateRegionWarningCode,
     ChemistryTimeRelationship,
     CurrentChemistry,
     CurrentVbg,
     DrawSite,
+    EvidenceTier,
     ExplorerContext,
     ExplorerInputError,
+    GasValueOrigin,
+    Hco3Basis,
     LimitationCode,
     Pco2Unit,
     PriorObservation,
@@ -30,6 +35,7 @@ from vbg_interpreter.models import (
 )
 from vbg_interpreter.normalize import normalize_pco2_to_mmhg, normalize_request
 from vbg_interpreter.serialization import ExplorerSerializationError
+from vbg_interpreter.venous_gas import complete_venous_gas
 
 _DEFAULT_SATURATION = SaturationInput(
     value=75.0,
@@ -103,21 +109,63 @@ def test_one_percentage_point_is_not_misread_as_one_fraction() -> None:
     assert one_fraction.normalized_percentage_points == 100.0
 
 
-def test_complete_candidate_region_preserves_approved_formula_and_intervals() -> None:
+def test_complete_candidate_region_uses_generic_ph_and_farkas_paco2_when_eligible() -> None:
     region = calculate_candidate_arterial_region(_request())
 
     assert region.status is CandidateRegionStatus.AVAILABLE
     assert region.point is not None
     assert region.ph_interval is not None
     assert region.paco2_interval is not None
-    assert region.point.ph == pytest.approx(7.3398)
+    assert region.point.ph == pytest.approx(7.353)
     assert region.point.paco2_mmhg == pytest.approx(51.04)
-    assert region.ph_interval.lower == pytest.approx(7.3098)
-    assert region.ph_interval.upper == pytest.approx(7.3698)
+    assert region.ph_interval.lower == pytest.approx(7.22)
+    assert region.ph_interval.upper == pytest.approx(7.50)
     assert region.paco2_interval.lower == pytest.approx(45.72)
     assert region.paco2_interval.upper == pytest.approx(56.87)
-    assert region.uncertainty_profile_id == "jorg_2023_no_supplemental_oxygen"
-    assert region.limitation_codes == (LimitationCode.SOURCE_SPECTRUM_NOT_ESTABLISHED,)
+    assert region.ph_model_id == "generic_peripheral_vbg_offset_v1"
+    assert region.paco2_model_id == "farkas_simplified_93_v1"
+    assert region.paco2_profile_id == "jorg_2023_no_supplemental_oxygen"
+    assert (
+        LimitationCode.GENERIC_POPULATION_OFFSET_NOT_INDIVIDUAL_CORRECTION
+        in region.limitation_codes
+    )
+
+
+def test_minimal_generic_model_preserves_bloom_orientation_and_source_extrema() -> None:
+    region = calculate_candidate_arterial_region(
+        VbgExplorerRequest(
+            current_vbg=CurrentVbg(
+                ph=7.32,
+                pco2=55.0,
+                pco2_unit=Pco2Unit.MMHG,
+            )
+        )
+    )
+
+    assert region.status is CandidateRegionStatus.AVAILABLE
+    assert region.point is not None
+    assert region.ph_interval is not None
+    assert region.paco2_interval is not None
+    assert region.point.ph == pytest.approx(7.353)
+    assert region.point.paco2_mmhg == pytest.approx(50.59)
+    assert region.ph_interval.lower == pytest.approx(7.22)
+    assert region.ph_interval.upper == pytest.approx(7.50)
+    assert region.paco2_interval.lower == pytest.approx(29.0)
+    assert region.paco2_interval.upper == pytest.approx(75.4)
+    assert region.ph_model_id == "generic_peripheral_vbg_offset_v1"
+    assert region.paco2_model_id == "generic_peripheral_vbg_offset_v1"
+    assert region.ph_evidence is not None
+    assert region.paco2_evidence is not None
+    assert region.ph_evidence.evidence_tier is EvidenceTier.DERIVATION_ONLY
+    assert region.paco2_evidence.evidence_tier is EvidenceTier.DERIVATION_ONLY
+    assert set(region.warning_codes) == {
+        CandidateRegionWarningCode.GENERIC_MODEL_WITH_UNKNOWN_SPECIMEN,
+        CandidateRegionWarningCode.GENERIC_MODEL_WITH_UNKNOWN_DRAW_SITE,
+        CandidateRegionWarningCode.GENERIC_MODEL_WITH_UNKNOWN_PERFUSION_CONTEXT,
+        CandidateRegionWarningCode.GENERIC_MODEL_WITH_UNKNOWN_VENTILATION_CONTEXT,
+        CandidateRegionWarningCode.GENERIC_MODEL_WITH_UNKNOWN_PREANALYTIC_CONTEXT,
+    }
+    assert LimitationCode.GENERIC_SOURCE_APPLICABILITY_UNKNOWN in region.limitation_codes
 
 
 def test_unknown_oxygen_uses_the_existing_conservative_profile_without_blocking() -> None:
@@ -126,7 +174,7 @@ def test_unknown_oxygen_uses_the_existing_conservative_profile_without_blocking(
     )
 
     assert region.status is CandidateRegionStatus.AVAILABLE
-    assert region.uncertainty_profile_id == "jorg_2023_oxygen_unknown_conservative"
+    assert region.paco2_profile_id == "jorg_2023_oxygen_unknown_conservative"
     assert region.paco2_interval is not None
     assert region.paco2_interval.lower == pytest.approx(41.84)
     assert region.paco2_interval.upper == pytest.approx(59.78)
@@ -136,24 +184,8 @@ def test_unknown_oxygen_uses_the_existing_conservative_profile_without_blocking(
     ("case", "expected_reason"),
     [
         (
-            _request(saturation=None),
-            CandidateRegionReasonCode.MISSING_SAME_SAMPLE_VENOUS_SATURATION,
-        ),
-        (
             _request(specimen_type=SpecimenType.CENTRAL_VENOUS),
             CandidateRegionReasonCode.SPECIMEN_OUTSIDE_PERIPHERAL_VENOUS_SCOPE,
-        ),
-        (
-            _request(draw_site=DrawSite.UNKNOWN),
-            CandidateRegionReasonCode.DRAW_SITE_UNKNOWN,
-        ),
-        (
-            _request(
-                context=_context(
-                    known_poor_perfusion_or_hemodynamic_instability=TriState.UNKNOWN,
-                )
-            ),
-            CandidateRegionReasonCode.PERFUSION_OR_HEMODYNAMIC_STATUS_UNKNOWN,
         ),
         (
             _request(
@@ -166,14 +198,6 @@ def test_unknown_oxygen_uses_the_existing_conservative_profile_without_blocking(
         (
             _request(
                 context=_context(
-                    material_preanalytic_concern=TriState.UNKNOWN,
-                )
-            ),
-            CandidateRegionReasonCode.PREANALYTIC_STATUS_UNKNOWN,
-        ),
-        (
-            _request(
-                context=_context(
                     material_preanalytic_concern=TriState.YES,
                 )
             ),
@@ -181,7 +205,7 @@ def test_unknown_oxygen_uses_the_existing_conservative_profile_without_blocking(
         ),
     ],
 )
-def test_candidate_gate_is_typed_and_does_not_reject_the_rest_of_the_request(
+def test_known_candidate_blockers_are_typed_and_do_not_reject_the_rest_of_the_request(
     case: VbgExplorerRequest,
     expected_reason: CandidateRegionReasonCode,
 ) -> None:
@@ -194,30 +218,145 @@ def test_candidate_gate_is_typed_and_does_not_reject_the_rest_of_the_request(
     assert chemistry.anion_gap_mmol_l == pytest.approx(11.0)
 
 
-def test_nonphysical_transformed_candidate_is_a_model_domain_refusal() -> None:
+@pytest.mark.parametrize(
+    "case",
+    [
+        _request(saturation=None),
+        _request(draw_site=DrawSite.UNKNOWN),
+        _request(
+            context=_context(
+                known_poor_perfusion_or_hemodynamic_instability=TriState.UNKNOWN,
+            )
+        ),
+        _request(
+            context=_context(
+                material_preanalytic_concern=TriState.UNKNOWN,
+            )
+        ),
+    ],
+)
+def test_missing_or_unknown_model_context_uses_a_warned_generic_scenario_model(
+    case: VbgExplorerRequest,
+) -> None:
+    region = calculate_candidate_arterial_region(case)
+
+    assert region.status is CandidateRegionStatus.AVAILABLE
+    assert LimitationCode.GENERIC_SOURCE_APPLICABILITY_UNKNOWN in region.limitation_codes or (
+        case.current_vbg.venous_o2_saturation is None
+    )
+
+
+def test_nonpositive_generic_pco2_envelope_refuses_without_clamping() -> None:
     request = VbgExplorerRequest(
         current_vbg=CurrentVbg(
             ph=7.4,
-            pco2=5.0,
+            pco2=26.0,
             pco2_unit=Pco2Unit.MMHG,
-            venous_o2_saturation=SaturationInput(0.0, SaturationUnit.PERCENTAGE_POINTS),
-            specimen_type=SpecimenType.PERIPHERAL_VENOUS,
-            draw_site=DrawSite.UPPER_EXTREMITY_PERIPHERAL,
         ),
-        current_chemistry=CurrentChemistry(140.0, 105.0, 24.0),
-        context=_context(supplemental_oxygen=TriState.YES),
     )
 
     region = calculate_candidate_arterial_region(request)
 
     assert region.status is CandidateRegionStatus.MODEL_DOMAIN_REFUSAL
-    assert region.reason_codes == (CandidateRegionReasonCode.NONPOSITIVE_ESTIMATED_PACO2,)
+    assert region.reason_codes == (CandidateRegionReasonCode.NONPOSITIVE_PACO2_INTERVAL_ENDPOINT,)
     assert region.point is None
 
 
 def test_pco2_kpa_conversion_overflow_is_rejected_before_result_serialization() -> None:
     with pytest.raises(ExplorerInputError, match="normalized PCO2"):
         normalize_pco2_to_mmhg(1e308, Pco2Unit.KPA)
+
+
+@pytest.mark.parametrize(
+    ("vbg", "missing_origin"),
+    [
+        (
+            CurrentVbg(ph=7.32, pco2=55.0, pco2_unit=Pco2Unit.MMHG),
+            GasValueOrigin.DERIVED_HENDERSON_HASSELBALCH,
+        ),
+        (
+            CurrentVbg(
+                ph=7.32,
+                hco3_mmol_l=27.0,
+                hco3_basis=Hco3Basis.REPORTED,
+            ),
+            GasValueOrigin.DERIVED_HENDERSON_HASSELBALCH,
+        ),
+        (
+            CurrentVbg(
+                pco2=55.0,
+                pco2_unit=Pco2Unit.MMHG,
+                hco3_mmol_l=27.0,
+                hco3_basis=Hco3Basis.REPORTED,
+            ),
+            GasValueOrigin.DERIVED_HENDERSON_HASSELBALCH,
+        ),
+    ],
+)
+def test_any_two_gas_values_complete_the_third_with_explicit_provenance(
+    vbg: CurrentVbg,
+    missing_origin: GasValueOrigin,
+) -> None:
+    completed = complete_venous_gas(
+        normalize_request(VbgExplorerRequest(current_vbg=vbg)).current_vbg
+    )
+
+    assert completed.ph > 0
+    assert completed.pco2_mmhg > 0
+    assert completed.hco3_mmol_l > 0
+    assert missing_origin in {
+        completed.ph_origin,
+        completed.pco2_origin,
+        completed.hco3_origin,
+    }
+
+
+@pytest.mark.parametrize(
+    "current_vbg",
+    [
+        CurrentVbg(
+            pco2=5e-324,
+            pco2_unit=Pco2Unit.MMHG,
+            hco3_mmol_l=1e308,
+            hco3_basis=Hco3Basis.REPORTED,
+        ),
+        CurrentVbg(
+            pco2=1e308,
+            pco2_unit=Pco2Unit.MMHG,
+            hco3_mmol_l=1e-300,
+            hco3_basis=Hco3Basis.REPORTED,
+        ),
+    ],
+)
+def test_extreme_finite_ph_completion_failures_use_typed_input_error(
+    current_vbg: CurrentVbg,
+) -> None:
+    with pytest.raises(ExplorerInputError, match="pH completion.*numerical domain"):
+        interpret_vbg(VbgExplorerRequest(current_vbg=current_vbg))
+
+
+def test_three_gas_values_are_preserved_and_material_discordance_is_flagged() -> None:
+    vbg = CurrentVbg(
+        ph=7.32,
+        pco2=55.0,
+        pco2_unit=Pco2Unit.MMHG,
+        hco3_mmol_l=40.0,
+        hco3_basis=Hco3Basis.REPORTED,
+    )
+    completed = complete_venous_gas(
+        normalize_request(VbgExplorerRequest(current_vbg=vbg)).current_vbg
+    )
+
+    assert completed.hco3_mmol_l == 40.0
+    assert completed.hco3_ph_pco2_comparator_mmol_l is not None
+    assert LimitationCode.HCO3_INPUT_DISCORDANT_WITH_PH_PCO2 in completed.limitation_codes
+
+
+def test_current_vbg_rejects_fewer_than_two_core_gas_values() -> None:
+    with pytest.raises(ExplorerInputError, match="at least two"):
+        CurrentVbg(ph=7.32)
+    with pytest.raises(ExplorerInputError, match="at least two"):
+        CurrentVbg()
 
 
 def test_chemistry_rejects_inputs_that_cannot_yield_a_finite_anion_gap() -> None:
@@ -276,7 +415,7 @@ def test_prior_vbg_remains_venous_and_is_not_historical_arterial_coordinate() ->
 
 def test_strict_mapping_requires_decimal_strings_exact_fields_and_duplicate_free_json() -> None:
     payload = {
-        "schema_version": "vbg_explorer_request/1.0",
+        "schema_version": "vbg_explorer_request/2.0",
         "current_vbg": {
             "ph": "7.32",
             "pco2": "55",
@@ -320,8 +459,29 @@ def test_strict_mapping_requires_decimal_strings_exact_fields_and_duplicate_free
         json.loads(rendered)["result"]["normalized_saturation"]["normalized_percentage_points"]
         == 75.0
     )
+    minimal_payload = json.loads(json.dumps(payload))
+    minimal_payload["current_vbg"].update(
+        {
+            "ph": None,
+            "pco2": "55",
+            "pco2_unit": "mmHg",
+            "hco3_mmol_l": "27",
+            "hco3_basis": "REPORTED",
+        }
+    )
+    minimal_payload["current_chemistry"].update(
+        {
+            "sodium_mmol_l": None,
+            "chloride_mmol_l": None,
+            "serum_total_co2_mmol_l": None,
+        }
+    )
+    minimal_request = request_from_json(json.dumps(minimal_payload))
+    assert minimal_request.current_vbg.ph is None
+    assert minimal_request.current_vbg.pco2 == 55.0
+    assert minimal_request.current_chemistry.sodium_mmol_l is None
     with pytest.raises(ExplorerSerializationError):
-        request_from_json('{"schema_version":"vbg_explorer_request/1.0","schema_version":"x"}')
+        request_from_json('{"schema_version":"vbg_explorer_request/2.0","schema_version":"x"}')
     payload["current_vbg"]["ph"] = 7.32
     with pytest.raises(ExplorerSerializationError):
         request_from_json(json.dumps(payload))
