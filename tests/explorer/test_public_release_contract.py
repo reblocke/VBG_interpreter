@@ -89,7 +89,7 @@ def test_pages_workflow_is_exact_repository_commit_and_live_visibility_bound() -
     for action in (
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
         "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
-        "astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9",
+        "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
         "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9",
         "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d",
         "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128",
