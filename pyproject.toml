@@ -34,9 +34,9 @@ Changelog = "https://github.com/reblocke/VBG_interpreter/blob/main/CHANGELOG.md"
 [dependency-groups]
 dev = [
   "playwright>=1.62.0,<2",
-  "pytest>=8.2",
-  "pytest-playwright>=0.7,<1",
-  "ruff>=0.15.1",
+  "pytest>=9.1.1",
+  "pytest-playwright>=0.8.0,<1",
+  "ruff>=0.16.2",
 ]
 
 [tool.pytest.ini_options]
