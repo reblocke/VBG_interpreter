@@ -62,11 +62,11 @@ known-first-party = ["vbg_interpreter"]
 required-version = ">=0.11.8,<0.12"
 build-constraint-dependencies = [
   "setuptools==84.0.0",
-  "wheel==0.47.0",
+  "wheel==0.48.0",
 ]
 
 [build-system]
-requires = ["setuptools==84.0.0", "wheel==0.47.0"]
+requires = ["setuptools==84.0.0", "wheel==0.48.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
