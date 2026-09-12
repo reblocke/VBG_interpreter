@@ -1,143 +1,100 @@
 # Evidence and provenance
 
-## Purpose
+This record describes the v0.3 research/educational contract. Passing synthetic checks does not
+validate the full Explorer, establish analyzer equivalence, or support clinical management.
 
-This is the evidence boundary for the live v2 Explorer contract. It records what the software
-computes and what each component does *not* establish. It is not an end-to-end clinical-validation
-packet, a claim of VBG–ABG interchangeability, or an individual arterial conversion method.
+## Venous gas and standard base excess
 
-The implementation is public for inspection and reproducibility. Passing synthetic tests,
-publication of source code, and a cited source do not raise an evidence tier or establish clinical
-accuracy.
+Supplied pH and PvCO2 are source measurements. Blood-gas HCO3 has independent reported/calculated/
+unknown provenance. HH completion uses the retained constants `0.0307` and `6.095`:
 
-## Component evidence map
+`HCO3 = 0.0307 × PvCO2(mmHg) × 10^(pH − 6.095)`.
 
-| Output | Method identity | Evidence status | Principal source | Binding limitation |
-| --- | --- | --- | --- | --- |
-| Supplied current VBG coordinate | Observed input | Measured/reported venous | User-supplied synthetic input | Remains venous |
-| Completed venous pH/PvCO₂/HCO₃ | Henderson–Hasselbalch (`0.0307`, `6.095`) | `DERIVED_CALCULATION` for a completed axis | Documented constants | Algebraic completion, not arterialization |
-| Venous pH orientation | Reference-band comparison | Descriptive only | Implemented display rule | Not a Boston interpretation of VBG values |
-| Generic candidate pH | `generic_peripheral_vbg_offset_v1` | `DERIVATION_ONLY` | Bloom et al. 2014 | Scenario envelope, not an individual conversion |
-| Generic candidate PaCO₂ | `generic_peripheral_vbg_offset_v1` | `DERIVATION_ONLY` | Bloom et al. 2014 | Scenario envelope, not an individual conversion |
-| Eligible PaCO₂-only upgrade | `farkas_simplified_93_v1` plus Jörg profile | `EXTERNALLY_EVALUATED` only for supplied PvCO₂ | Jörg et al. 2023 | Does not validate pH, a derived PvCO₂ axis, or the full Explorer |
-| Candidate state set | `stewartlight_boston_ruleset_v1` | `IMPLEMENTED_SOFTWARE_RULESET` | Repository compatibility behavior | Not an adjudicated clinical standard |
-| Serum anion gap | Na − Cl − serum total CO₂ | `DERIVED_CALCULATION` | Documented repository formula | Serum chemistry only |
-| Optional Stewart partition | Pinned structured upstream helper | `IMPLEMENTED_SOFTWARE_RULESET` | `stewartlight@f277cac` | Venous basis; requires supplied pH, base excess, and same-time chemistry |
+Its inverses complete only a missing gas coordinate. `MEASURED_OR_REPORTED` and
+`CALCULATED_HENDERSON_HASSELBALCH` are different origins. Supplied HCO3 is never overwritten;
+all-three inputs yield a neutral signed reported-minus-HH HCO3 difference. The retained
+7.35–7.45 comparison is descriptive, not a validated venous reference interval.
 
-## Progressive venous-gas completion
+The owner selected the classic standardized Van Slyke equation on 2026-09-12:
 
-The only minimum current-gas requirement is any two of pH, PvCO₂, and blood-gas HCO₃. The
-Explorer completes the third coordinate with the retained Henderson–Hasselbalch relation and
-labels each coordinate `SUPPLIED` or `DERIVED_HENDERSON_HASSELBALCH`. This is algebraic completion
-of a **venous** gas, not a conversion to an arterial measurement.
+`SBE = 0.9287 × [HCO3 − 24.4 + 14.83 × (pH − 7.4)]` (mmol/L).
 
-When all three values are supplied, none is silently replaced. The result retains the supplied
-HCO₃, calculates a pH/PvCO₂ comparator, and reports a typed discrepancy limitation when the
-absolute difference exceeds the documented 0.5 mmol/L display threshold. Serum total CO₂ is never
-substituted for blood-gas HCO₃, and chemistry is never inverted to create current PvCO₂.
+Source: Schlichtig R, Grogono AW, Severinghaus JW. Human PaCO2 and standard base excess
+compensation for acid-base imbalance. *Critical Care Medicine*. 1998;26(7):1173–1179.
+[doi:10.1097/00003246-199807000-00015](https://doi.org/10.1097/00003246-199807000-00015).
+The methods specify standardized effective hemoglobin of 3.1 mmol/L (approximately 5 g/dL) and
+HH completion at 37°C. This app uses its retained HH constants rather than changing them to the
+paper's rounded constants. That implementation choice is explicit and tested; no compensation
+rules from the paper are implemented.
 
-If pH or PvCO₂ is Henderson–Hasselbalch derived, that axis remains outside the population-model
-evaluation used for the candidate region. It retains a derivation-only evidence label even when
-the supplied inputs otherwise meet a PaCO₂-upgrade gate.
+Reported standard BE takes precedence. Otherwise, two gas coordinates support calculated
+venous-basis SBE. A measured pH/PvCO2 pair uses its HH bicarbonate even if a third HCO3 was
+reported; pH/HCO3 uses the supplied pair, and PvCO2/HCO3 uses explicitly HH-derived pH.
+Actual/unknown BE is never silently substituted for standard BE. Serum total CO2 and modeled
+arterial PaCO2 are not operands. Normothermia (37°C) is assumed and displayed. SBE is a derived
+calculation with method ID `venous_sbe_van_slyke_37c_v1`, not a measured or arterial value.
+No actual-Hb, temperature-correction, corrected-SBE, or analyzer-matching model is added.
 
-## Component-selected candidate arterial sensitivity region
+## PaCO2 component
 
-### Generic component
+`estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample venous saturation%)`.
 
-For each available candidate region, the pH component is the generic Bloom-derived component. The
-implementation uses the reported venous-minus-arterial (`V − A`) mean and retained
-study-level agreement extrema from Bloom et al. 2014, then converts their sign into arterial
-coordinates:
+The component is `farkas_simplified_93_v1`, originally described in the Farkas public manuscript
+and externally evaluated by Jörg M, Öster M, Wretborn J, Wilhelms DB. Agreement of pCO2 in venous
+to arterial blood gas conversion models in undifferentiated emergency patients. *Intensive Care
+Medicine Experimental*. 2023;11:80.
+[doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w).
 
-| Axis | Point orientation | Published study-level agreement-extrema scenario envelope |
-| --- | --- | --- |
-| pH | `pHv + 0.033` | `pHv − 0.10` through `pHv + 0.18` |
-| PaCO₂ (mmHg) | `PvCO₂ − 4.41` | `PvCO₂ − 26.0` through `PvCO₂ + 20.4` |
+Retained estimate-minus-arterial errors (mmHg) are −5.83 to +5.32 without oxygen and −8.74 to
++9.20 with oxygen. The deterministic arterial-reference range is therefore
+`[estimate − upper_error, estimate − lower_error]`. Unknown oxygen selects the latter existing
+conservative profile and is labeled unknown. Numerical endpoints must be finite and positive;
+there is no clamping. Saturation above 93% retains a model-reference caveat.
 
-The source values retained by the implementation are pH `V − A` mean `−0.033` with extrema
-`−0.18` and `+0.10`, and PaCO₂ `V − A` mean `+4.41 mmHg` with extrema `−20.4` and `+26.0 mmHg`.
-The conversion above explains why the arithmetic signs reverse for arterial coordinates. The
-implementation does not reproduce the source table, figure, or article text.
+The study sampled upper-extremity peripheral veins. Full eligibility requires that specimen/site
+and explicit NO for the three documented adverse-context flags. Known incompatible context
+withholds the estimate. Unknown context can produce `APPLICABILITY_UNCERTAIN`, which is not
+proof of applicability. Explicit same-sample confirmation remains mandatory. No threshold for
+hemodynamics, sampling delay, or treatment recency is invented.
 
-The generic pH and PaCO₂ envelopes are a deterministic **published study-level agreement-extrema
-scenario envelope**. They are not a 95% interval, confidence interval, prediction interval,
-probability, frequency, likelihood, or patient-specific coverage claim. The pH and PaCO₂ margins
-are separately sourced and form a Cartesian rectangle; their joint coverage was not established.
-Both generic components are `DERIVATION_ONLY` and have no individual external-validation claim.
+The externally evaluated label belongs only to the PaCO2 component; it does not validate
+arterial pH, a derived PvCO2 input, a combined algorithm, patient-specific interval coverage, or
+management equivalence. There is no configured categorical screening threshold.
 
-Known central, mixed, or capillary specimen types; known central or pulmonary-artery catheter draw
-sites; and explicit `YES` poor-perfusion/hemodynamic, recent major ventilation/treatment-change,
-or material-preanalytic concern suppress the arterial sensitivity region. Unknown specimen, draw
-site, or context does not establish favorable applicability: the generic component can still run
-only with explicit warnings and an unknown-source-applicability limitation. A nonpositive or
-nonfinite candidate endpoint is a typed model-domain refusal. The code does not clamp a PaCO₂
-endpoint to a positive value, because doing so could shrink the scenario envelope and create a
-false exclusion.
+## Serum chemistry
 
-### PaCO₂-only Farkas/Jörg upgrade
+- Serum AG: `Na − Cl − serum total CO2`.
+- Albumin-corrected AG: `AG + 0.25 × (40 − albumin g/L)`, retaining the existing correction.
+- Na−Cl difference: direct subtraction, a descriptive strong-ion surrogate.
 
-The generic PaCO₂ component is replaced only when all of the following are explicit: peripheral
-venous specimen type, upper-extremity peripheral draw site, same-sample venous saturation with an
-explicit unit, and `NO` for poor perfusion/hemodynamic instability, recent major
-ventilation/treatment change, and material preanalytic concern. In that narrow setting, the
-Explorer applies the retained Farkas saturation equation to **PaCO₂ only** and uses the
-oxygen-context Jörg profile for the PaCO₂ sensitivity range.
+These are explicit arithmetic methods without imputation or high/normal/low thresholds.
+Laboratory reference intervals vary. Serum total CO2 remains a chemistry operand only.
+Lactate is displayed as measured chemistry and may enter an otherwise eligible partition.
 
-The Farkas/Jörg component carries `EXTERNALLY_EVALUATED` evidence only when PvCO₂ was supplied.
-If PvCO₂ was reconstructed from pH and blood-gas HCO₃, it remains derivation-only and gets an
-explicit outside-population-model-evaluation limitation. Its descriptor still preserves the
-Farkas, Jörg, and Henderson–Hasselbalch source identifiers used for that component; it does not
-substitute generic Bloom provenance or claim external validation. The upgrade never replaces the
-generic pH component, never converts a venous result into an arterial measurement, and does not
-validate the combined pH–PaCO₂ rectangle, the state labels, or any individual patient estimate.
+The venous Stewart partition delegates unchanged formulas to the structured helper in
+[`stewartlight@f277cac`](https://github.com/reblocke/stewart-light/tree/f277cac54801d85366cbadbf11804f6643f6a869).
+It requires source-measured venous pH, reported or calculated venous SBE, Na, Cl, albumin, and
+same-clinical-timepoint confirmation. Derived pH cannot enable it. Calculated SBE carries its
+full input provenance and normothermia assumption into the partition. The upstream helper's
+documentation describes supplied SBE; use of an explicitly derived SBE is this Explorer's
+owner-approved adaptation. Its numerical closure is software evidence, not clinical validation.
 
-Jörg et al. 2023 documents the retained PaCO₂ formula and component evaluation
-([doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w)). Bloom et al. is
-cited below for the generic component. Neither source is treated as a clinical validation of the
-Explorer.
-
-## Candidate state rules and certified conclusions
-
-The retained Boston compatibility engine is identified as `stewartlight_boston_ruleset_v1`. It is
-an `IMPLEMENTED_SOFTWARE_RULESET`, not an adjudicated clinical gold standard. The Explorer uses a
-certified terminal-path feasibility implementation over the candidate rectangle rather than a
-finite display grid to derive possible states. It evaluates both chronicity branches by design.
-
-Certification establishes feasibility only within the submitted model rectangle and retained
-ruleset. It cannot create coverage, calibration, diagnosis, treatment, or global exclusion claims.
-The displayed coordinate samples are explanatory only and never drive possible/excluded output.
-
-## Progressive serum chemistry and Stewart context
-
-Every current-chemistry field is optional. An empty chemistry lane is `NOT_PROVIDED`; a partially
-supplied lane is `PARTIAL`; and a lane with sodium, chloride, and serum total CO₂ can calculate a
-serum anion gap. Albumin adds an albumin-corrected anion-gap context only when both the anion gap
-and albumin are present. Lactate remains a separately supplied chemistry value.
-
-The optional `VENOUS_BASIS` Stewart partition requires supplied VBG pH, measured venous base
-excess, supplied sodium/chloride/albumin, and a same-clinical-timepoint relationship. It does not
-use a Henderson–Hasselbalch-derived pH, infer arterial SBE, or accept PvCO₂, blood-gas HCO₃, or
-serum total CO₂ as a partition operand.
-
-## Source identifiers and restrictions
-
-The local evidence descriptors preserve source identifiers including `bloom_2014`,
-`farkas_2012_public_manuscript`, `jorg_2023`, `krbec_2022`, and
-`clsi_c46_a2_official_record`. These identifiers document the current evidence boundary; they do
-not transfer rights or authorize copying restricted text, figures, tables, standards, or
-unpublished material. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+## Population context and source rights
 
 Bloom BM, Grundlingh J, Bestwick JP, Harris T. The role of venous blood gas in the Emergency
-Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine.*
+Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine*.
 2014;21(2):81–88. [doi:10.1097/MEJ.0b013e32836437cf](https://doi.org/10.1097/MEJ.0b013e32836437cf).
-The bibliographic record and the retained numeric constants were reviewed 2026-08-04. No source
-artifact, full text, table, figure, or layout is distributed in this repository.
+Population agreement summaries are context only. They are not used as individual arterial
+conversion coefficients or to construct a joint arterial region in v0.3.
 
-## Verification versus validation
+Source equations and bibliographic records were checked for this change on 2026-09-12. No
+article, table, figure, standard, patient dataset, or publisher layout is distributed. Existing
+Farkas, Jörg, Bloom, Krbec, and CLSI provenance/rights notices remain in THIRD_PARTY_NOTICES.md.
 
-The deterministic synthetic matrix checks progressive input completion, supplied-versus-derived
-origins, signed scenario arithmetic, no-clamp domain refusals, partial chemistry, certified
-set-predicate semantics, and browser contracts. It does not estimate clinical bias, limits of
-agreement, coverage, sensitivity, specificity, calibration, subgroup performance, or patient
-outcomes. No protected or patient-derived validation dataset is included or executed in this
-repository. Those questions remain future external scientific work.
+## Verification boundary
+
+The synthetic matrix checks arithmetic targets, units, gate decisions, provenance, local-domain
+refusals, independent partial results, partition closure, and deterministic contracts. Browser
+checks exercise the self-hosted runtime, privacy, accessibility, and progressive rendering.
+No validated local end-to-end VBG algorithm exists. Screening, prediction, compensation
+classification, and management equivalence remain separate scientific claims.

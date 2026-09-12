@@ -1,114 +1,74 @@
 # VBG Acid–Base Explorer
 
-VBG Acid–Base Explorer is an open-source research and educational application for exploring what
-can—and cannot—be concluded from a current venous blood gas (VBG), current BMP/CMP chemistry,
-limited clinical context, and at most one prior observation.
+Enter the VBG and chemistry values you have. The Explorer reports only the measurements,
+calculations, screening statements, and model estimates supported by those inputs. Missing values
+suppress only the dependent result. Categorical screening is not configured in v0.3.
 
-**[Open the hosted v0.2 research preview](https://reblocke.github.io/VBG_interpreter/)**
+**[Open the hosted v0.3 research preview](https://reblocke.github.io/VBG_interpreter/)**
 
-The Explorer is deliberately set-valued. It keeps measured, calculated, modeled, and historical
-information separate and reports:
-
-- features present across every modeled arterial state;
-- features possible in some modeled states;
-- features excluded only within the explicitly modeled state space; and
-- questions that are not evaluable from the supplied information.
-
-It is not clinically validated, is not a medical device or medical advice, and must not be used
-to diagnose, treat, or replace an arterial blood gas (ABG) when arterial confirmation is required.
-Use synthetic values only; do not enter PHI or real patient data.
+This client-side app is for research and education. It is not clinically validated, is not medical
+advice, and must not be used to diagnose, treat, or replace an ABG when arterial confirmation is
+required. Use synthetic values only; do not enter PHI or real patient data.
 
 ## Intended use cases
 
-The Explorer is designed for:
+- Inspect measured venous values, direct calculations, and their provenance.
+- Explore how available inputs enable individual calculations without filling missing data.
+- Review the assumptions and limitations of a separately labeled arterial PaCO2 estimate.
+- Test reproducible synthetic scenarios and audit scientific software behavior.
 
-- teaching how venous measurements, serum chemistry, and modeled arterial possibilities differ;
-- examining how uncertainty changes a software-ruleset acid–base classification;
-- testing synthetic scenarios and research hypotheses;
-- reviewing the provenance and limitations of the implemented calculations; and
-- developing or auditing set-valued scientific-software methods.
+### It is not intended for
 
-It is not intended for:
-
-- patient-specific diagnosis, treatment, triage, monitoring, or management;
-- deciding that an ABG is unnecessary;
-- inferring PaO₂, arterial saturation, A–a gradient, P/F ratio, tissue hypoxia, oxygen extraction,
-  or arterial standard/base excess;
-- treating serum total CO₂ as blood-gas HCO₃ or inverting chemistry to estimate current PaCO₂;
-- claiming analyzer equivalence, VBG–ABG interchangeability, or a patient-specific probability;
-  or
-- claims of readiness or suitability for commercial, operational, or regulated clinical
-  deployment.
+Patient-specific diagnosis, treatment, triage, monitoring, arterial oxygenation inference,
+management decisions, claims of analyzer equivalence, or deciding that an ABG is unnecessary.
 
 ## What it accepts
 
-The single workflow has four input lanes:
-
-1. **Current VBG:** any two of pH, PvCO₂, and blood-gas HCO₃ are required. The Explorer labels
-   the supplied coordinates and completes the third only with the documented
-   Henderson–Hasselbalch relation. Venous base excess, same-sample venous saturation with an
-   explicit unit, specimen type, and draw site are individually optional.
-2. **Current BMP/CMP:** every chemistry field is optional. Sodium, chloride, and serum total CO₂
-   together allow a serum anion gap; albumin adds the documented correction when that gap is
-   available; lactate and the chemistry-to-VBG time relationship remain separate context.
-3. **Optional context:** explicit tri-state poor-perfusion/hemodynamic, recent major
-   ventilation/treatment-change, preanalytic, and supplemental-oxygen fields.
-4. **One optional prior observation:** ABG, VBG, or serum total CO₂, retained as historical context
-   rather than proof of chronicity.
-
-Missing values limit only dependent output. The minimum gas pair can still support a completed
-venous-gas display, caveated candidate sensitivity region, and certified state-space assessment
-when its model domain is valid. Missing chemistry withholds only chemistry-dependent calculations.
-Known out-of-scope specimen/context conditions suppress arterial-model conclusions; unknown model
-context remains an explicit caveat and never silently becomes favorable context.
+One or more VBG values: pH, PvCO2 with unit, blood-gas HCO3 with reported/calculated/unknown basis,
+reported base excess with standard/actual/unknown basis, or unit-explicit venous O2 saturation.
+Every CMP/BMP field is optional: sodium, chloride, serum total CO2, albumin, and lactate.
+Chemistry timing and collapsed specimen/context fields refine only dependent calculations.
 
 ## What it returns
 
-The Explorer first shows a completed **venous** pH–PvCO₂–blood-gas-HCO₃ coordinate, including
-which values were supplied or Henderson–Hasselbalch derived. Its venous pH orientation is
-descriptive only; it is not a Boston interpretation applied directly to venous values.
+| Available inputs | Supported result |
+| --- | --- |
+| Any one VBG value | Reported venous fact with units and provenance |
+| Any two core gas coordinates | HH completion of the third, explicitly derived |
+| All three coordinates | Neutral reported-minus-HH HCO3 difference |
+| Reported standard BE, or sufficient gas coordinates | Reported or calculated venous SBE; calculated values assume 37°C |
+| Measured PvCO2 and confirmed same-sample venous saturation | Gated Farkas/Jörg PaCO2 estimate and deterministic agreement range |
+| Na, Cl, serum total CO2 | Serum anion gap |
+| AG operands and albumin | Albumin-corrected AG, without a universal reference cutoff |
+| Na and Cl | Descriptive Na−Cl difference |
+| Measured venous pH, reported/calculated SBE, same-time Na/Cl/albumin | Venous Stewart partition; optional lactate component |
 
-Absent a known model blocker and within the model domain, it then calculates a deterministic
-pH–PaCO₂ sensitivity rectangle and exhaustively enumerates the compatible states of the retained
-Boston-style software ruleset. The pH component uses the generic published-agreement scenario
-model. The PaCO₂ component uses that generic model unless all documented peripheral,
-same-sample-saturation, and context gates allow the Farkas/Jörg PaCO₂-only upgrade. The coordinate
-display is explanatory only: its colors, areas, samples, and cell counts have no probability,
-prevalence, likelihood, confidence, or frequency meaning. A modeled point is orientation, not “the
-arterial result.”
+Derived pH/PvCO2 remain venous and cannot act as independently measured model inputs. Reported
+actual or unspecified BE is not relabeled as SBE. If reported standard BE is absent, calculated
+SBE uses the selected Van Slyke equation and carries its derivation and normothermia assumption
+into any eligible partition. Serum total CO2 is never substituted for blood-gas HCO3.
 
-Chemistry is evaluated field by field in parallel. Serum anion gap is available only from supplied
-sodium, chloride, and serum total CO₂; albumin-dependent context and the venous-basis Stewart
-partition appear only when their required inputs are present. A prior observation remains in its
-original specimen/provenance lane and does not prune acute or chronic branches.
+Full PaCO2 applicability requires upper-extremity peripheral sampling and explicit favorable
+context. Known blockers withhold estimation. Unknown context can permit a prominently marked
+applicability-uncertain estimate; same-sample confirmation is still mandatory. There is no
+arterial pH estimate or complete arterial acid–base classification.
 
-The live schemas are:
+The five result cards show venous gas, relevant chemistry, relevant PaCO2 estimation, uncertainty
+with at most three additional-information items, and collapsed methods/evidence. A calculation's
+numerical failure preserves independent results.
 
-- `vbg_explorer_request/2.0`
-- `vbg_explorer_result/2.0`
-
-See the [interpretation specification](docs/INTERPRETATION_SPEC.md) for the exact set predicates
-and [clinical scope](docs/CLINICAL_SCOPE.md) for applicability and non-use boundaries.
+The live schemas are `vbg_explorer_request/3.0` and `vbg_explorer_result/3.0`, without compatibility
+shims. See the [interpretation specification and synthetic examples](docs/INTERPRETATION_SPEC.md),
+[clinical scope](docs/CLINICAL_SCOPE.md), and [evidence record](docs/EVIDENCE.md).
 
 ## Scientific caveats
 
-- The generic pH and PaCO₂ components are source-derived sensitivity scenarios, not individual
-  VBG-to-ABG conversions. Their source extrema are neither prediction intervals nor joint pH–PaCO₂
-  coverage claims.
-- The Farkas/Jörg external-evaluation label applies only to the eligible, supplied-PvCO₂ PaCO₂
-  component. It does not validate generic pH, a Henderson–Hasselbalch-derived axis, or the combined
-  Explorer.
-- A completed venous coordinate and its descriptive pH orientation remain venous. Calculated HCO₃
-  is a derived blood-gas value, not a measured arterial bicarbonate or serum total CO₂.
-- The Boston-style engine is compatibility software behavior, not an adjudicated clinical
-  standard or a validated diagnostic target.
-- The source population and applicability spectrum are incompletely characterized.
-- A prior gas or chemistry value can add context but cannot prove chronicity or exclude an
-  acute-on-chronic process.
-- Public source availability and code verification do not create clinical evidence.
-
-Read the complete [evidence and provenance record](docs/EVIDENCE.md) and
-[third-party notices](THIRD_PARTY_NOTICES.md) before reusing calculations or claims.
+The 7.35–7.45 pH comparison is descriptive, not a validated venous normal interval. No categorical
+PvCO2 screening cutoff is configured. The Farkas/Jörg component has external-evaluation evidence,
+but its range is not a patient-specific probability interval. Calculated venous SBE does not
+establish arterial SBE or analyzer equivalence. There is no validated local end-to-end VBG
+algorithm. Screening, prediction, compensation classification, and management equivalence are
+separate claims. Public availability and passing software tests create no new clinical evidence.
 
 ## Privacy and hosting
 
@@ -161,7 +121,7 @@ patient-specific interpretation, or emergency support.
 
 ## Version, citation, and license
 
-Version `0.2.0` is the current public research preview. The hosted Explorer is deployed only from
+Version `0.3.0` is the current public research preview. The hosted Explorer is deployed only from
 the reviewed `main` commit and publishes that exact source identity in `release-manifest.json`.
 Cite the manifest commit or the exact source commit used. Structured citation metadata are in
 [CITATION.cff](CITATION.cff). Repository-authored code is available under the [MIT License](LICENSE),

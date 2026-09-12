@@ -1,0 +1,33 @@
+{
+  "context": {
+    "known_poor_perfusion_or_hemodynamic_instability": "NO",
+    "material_preanalytic_concern": "NO",
+    "recent_major_ventilation_or_treatment_change": "NO",
+    "supplemental_oxygen": "NO"
+  },
+  "current_chemistry": {
+    "albumin_g_l": "40.0",
+    "chloride_mmol_l": "105.0",
+    "lactate_mmol_l": "2.0",
+    "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT",
+    "serum_total_co2_mmol_l": "24.0",
+    "sodium_mmol_l": "140.0"
+  },
+  "current_vbg": {
+    "base_excess_basis": "UNKNOWN",
+    "base_excess_mmol_l": null,
+    "draw_site": "UPPER_EXTREMITY_PERIPHERAL",
+    "hco3_basis": "UNKNOWN",
+    "hco3_mmol_l": null,
+    "pco2": "55.0",
+    "pco2_unit": "mmHg",
+    "ph": "7.32",
+    "saturation_same_sample": "YES",
+    "specimen_type": "PERIPHERAL_VENOUS",
+    "venous_o2_saturation": {
+      "unit": "PERCENTAGE_POINTS",
+      "value": "75.0"
+    }
+  },
+  "schema_version": "vbg_explorer_request/3.0"
+}

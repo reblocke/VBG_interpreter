@@ -20,6 +20,14 @@ the [upstream repository](https://github.com/reblocke/stewart-light) for its sou
 
 ## Scientific sources
 
+- Schlichtig R, Grogono AW, Severinghaus JW. Human PaCO2 and standard base excess compensation
+  for acid-base imbalance. *Critical Care Medicine*. 1998;26(7):1173–1179.
+  [doi:10.1097/00003246-199807000-00015](https://doi.org/10.1097/00003246-199807000-00015).
+  Cited for the standardized Van Slyke SBE equation and its assumptions, selected by the owner
+  on 2026-09-12. No article, figure, table, or publisher layout is distributed. Attribution does
+  not transfer publication rights or establish analyzer equivalence or clinical validation.
+
+
 - Bloom BM, Grundlingh J, Bestwick JP, Harris T. The role of venous blood gas in the Emergency
   Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine.*
   2014;21(2):81–88. [doi:10.1097/MEJ.0b013e32836437cf](https://doi.org/10.1097/MEJ.0b013e32836437cf).
