@@ -83,6 +83,8 @@ fieldset {
   margin: 24px 0;
 }
 legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 1.15rem;
   font-weight: 700;
 }

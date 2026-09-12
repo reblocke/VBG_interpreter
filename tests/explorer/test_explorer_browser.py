@@ -316,4 +316,6 @@ def test_named_landmarks_targets_forced_colors_and_400_percent_text(page, explor
                 document.getElementById(id)?.textContent.trim()))""")
     page.set_viewport_size({"width": 390, "height": 844})
     page.evaluate("document.documentElement.style.fontSize = '400%'")
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    for font in ("system-ui", "Verdana, sans-serif"):
+        page.evaluate("font => document.documentElement.style.fontFamily = font", font)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
