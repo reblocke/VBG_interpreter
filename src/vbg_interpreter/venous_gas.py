@@ -69,6 +69,7 @@ def complete_venous_gas(source: CurrentVbg) -> VenousGas:
     if source.pco2 is not None:
         try:
             values["pco2"] = normalize_pco2_to_mmhg(source.pco2, source.pco2_unit)
+            measured["pco2"]["normalized_mmhg"] = values["pco2"]
         except ValueError:
             normalization_failed = True
     original = values.copy()

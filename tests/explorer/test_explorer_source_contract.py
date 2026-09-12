@@ -171,6 +171,7 @@ def test_active_explorer_has_no_storage_url_state_telemetry_or_external_api() ->
     literal_external_urls = re.findall(r"[\"'](https?://[^\"']+)[\"']", source)
     assert set(literal_external_urls) <= {
         "https://",
+        "http://www.w3.org/2000/svg",
         "https://github.com/reblocke/VBG_interpreter/blob/main/docs/EVIDENCE.md",
     }
 
@@ -257,7 +258,8 @@ def test_adaptive_form_has_labels_one_action_and_five_result_cards():
         sum(attrs.get("type") == "submit" for tag, attrs in inventory.tags if tag == "button") == 1
     )
     assert "Interpret available data" in INDEX_PATH.read_text()
-    assert "saturation-same-sample" in labels
+    assert "saturation-same-sample" not in labels
+    assert "specimen-type" not in labels
     assert "chemistry-relationship" in labels
     assert sum(attrs.get("id", "").endswith("-card") for _, attrs in inventory.tags) == 4
     assert all("open" not in attrs for tag, attrs in inventory.tags if tag == "details")

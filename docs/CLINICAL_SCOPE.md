@@ -1,7 +1,7 @@
 # Clinical scope
 
-Version 0.3.0 is the current public research preview. It presents reported venous measurements,
-algebraic calculations, serum chemistry, and a narrowly scoped PaCO2 estimate. It is not
+Version 0.4.0 is the current public research preview. It presents reported venous measurements,
+algebraic calculations, serum chemistry, and caveated arterial estimates with a provisional compensation assessment. It is not
 clinically validated, not medical advice, and not a medical device. It must not be used to
 diagnose, treat, triage, or replace an arterial blood gas when arterial confirmation is required.
 Use synthetic values only; do not enter PHI or real patient data.
@@ -18,16 +18,21 @@ Use synthetic values only; do not enter PHI or real patient data.
   (37°C) assumed. It is not arterial SBE, actual whole-blood BE, or an analyzer-equivalence claim.
   It inherits the provenance of its pH and blood-gas HCO3 operands. A reported actual/unknown BE
   is echoed but never relabeled as standard BE.
-- The Farkas/Jörg component requires source-measured PvCO2, unit-explicit measured venous
-  saturation, and explicit same-sample confirmation. It never uses HH-derived PvCO2.
-- Known nonperipheral specimen, non-upper-extremity draw, poor perfusion/hemodynamic instability,
-  recent major treatment/ventilation change, or material preanalytic concern withholds the
-  estimate. Same-sample NO withholds it; UNKNOWN requires confirmation.
-- Unknown specimen/site/clinical context may permit a prominently marked applicability-uncertain
-  estimate. Unknown does not become favorable. External evaluation describes the method,
-  not proof that the current supplied context is within the evaluated population.
-- The displayed agreement range is deterministic, not a patient-specific probability interval.
-  Unknown oxygen uses the existing conservative profile. No endpoints are clamped.
+- Fixed arterial estimates use the owner-selected pH +0.04 and PvCO2 −5 mmHg heuristics.
+  These are rough point estimates, not individual validated conversions or intervals.
+- Same-sample venous saturation automatically selects Farkas for PaCO2, while pH keeps its
+  fixed correction. SpO2 and PO2 are not accepted substitutes. Only measured source coordinates
+  enter the models; HH-derived venous coordinates do not become independent measurements.
+- Specimen/site, perfusion, treatment-change and preanalytic context are not collected. Every
+  estimate is labeled applicability-unassessed; the app does not establish favorable conditions.
+- Farkas retains the conservative published oxygen-profile agreement bounds. They are not
+  patient-specific probability intervals, and do not establish joint pH/CO2 coverage. Invalid
+  endpoints are refused without clamping or silently reverting to the fixed method.
+- Modeled arterial HCO3 is calculated from the estimated pair, separately from venous HCO3.
+  The provisional Boston output describes compatibility at that point, not confirmed diagnosis,
+  exclusions or chronicity. The combined pH/CO2/interpretation path has no external validation.
+- Matching measured/estimated plots are explanatory. Their pH 7.40 / CO2 40 reference cross
+  is not a validated venous cutoff or diagnostic partition. Missing pairs have no invented point.
 - Serum total CO2 is distinct from blood-gas HCO3. AG and albumin-corrected AG are numerical
   calculations without universal laboratory-normal thresholds. Na−Cl is a descriptive surrogate.
 - Venous Stewart partition requires measured venous pH, reported or calculable venous SBE,
@@ -38,12 +43,12 @@ Use synthetic values only; do not enter PHI or real patient data.
 
 ## Unavailable inferences
 
-The app does not infer arterial pH, arterial oxygenation, PaO2, A–a gradient, P/F ratio, tissue
-hypoxia, oxygen extraction, arterial SBE, or a complete arterial acid–base state. Chemistry cannot
+The app does not infer arterial oxygenation, PaO2, A–a gradient, P/F ratio, tissue
+hypoxia, oxygen extraction, arterial SBE, or a definitive arterial acid–base state. Chemistry cannot
 supply current PaCO2. Missing data or a failed numerical calculation cannot erase independent
 available results. Next-input descriptions explain information gained without directing care.
 
-Population agreement summaries do not define an individual conversion or joint arterial region.
+Population agreement summaries do not validate individual conversion or define a joint arterial region.
 Prior-observation interpretation was deferred in v0.3; its removal does not disprove the value
 of appropriately studied longitudinal information.
 

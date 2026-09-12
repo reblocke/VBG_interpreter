@@ -1,4 +1,4 @@
-"""Strict mapping boundary for ``vbg_explorer_request/3.0``."""
+"""Strict mapping boundary for ``vbg_explorer_request/4.0``."""
 
 from __future__ import annotations
 
@@ -14,14 +14,10 @@ from vbg_interpreter.models import (
     ChemistryTimeRelationship,
     CurrentChemistry,
     CurrentVbg,
-    DrawSite,
-    ExplorerContext,
     Hco3Basis,
     Pco2Unit,
     SaturationInput,
     SaturationUnit,
-    SpecimenType,
-    TriState,
     VbgExplorerRequest,
 )
 from vbg_interpreter.serialization import (
@@ -31,7 +27,7 @@ from vbg_interpreter.serialization import (
 )
 
 _DECIMAL = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\Z")
-_ROOT_KEYS = frozenset({"schema_version", "current_vbg", "current_chemistry", "context"})
+_ROOT_KEYS = frozenset({"schema_version", "current_vbg", "current_chemistry"})
 _CURRENT_VBG_KEYS = frozenset(
     {
         "ph",
@@ -41,10 +37,7 @@ _CURRENT_VBG_KEYS = frozenset(
         "hco3_basis",
         "base_excess_mmol_l",
         "base_excess_basis",
-        "saturation_same_sample",
         "venous_o2_saturation",
-        "specimen_type",
-        "draw_site",
     }
 )
 _CHEMISTRY_KEYS = frozenset(
@@ -55,14 +48,6 @@ _CHEMISTRY_KEYS = frozenset(
         "albumin_g_l",
         "lactate_mmol_l",
         "relationship_to_vbg",
-    }
-)
-_CONTEXT_KEYS = frozenset(
-    {
-        "known_poor_perfusion_or_hemodynamic_instability",
-        "recent_major_ventilation_or_treatment_change",
-        "material_preanalytic_concern",
-        "supplemental_oxygen",
     }
 )
 _SATURATION_KEYS = frozenset({"value", "unit"})
@@ -80,12 +65,11 @@ def request_from_mapping(payload: Mapping[str, object]) -> VbgExplorerRequest:
     root = require_exact_keys(payload, _ROOT_KEYS, path="request")
     if root["schema_version"] != VBG_EXPLORER_REQUEST_SCHEMA_VERSION:
         raise ExplorerSerializationError(
-            "schema_version must be vbg_explorer_request/3.0; no legacy migration is available."
+            "schema_version must be vbg_explorer_request/4.0; no legacy migration is available."
         )
     return VbgExplorerRequest(
         current_vbg=_current_vbg(root["current_vbg"]),
         current_chemistry=_chemistry(root["current_chemistry"]),
-        context=_context(root["context"]),
     )
 
 
@@ -102,12 +86,7 @@ def _current_vbg(value: object) -> CurrentVbg:
             data["base_excess_mmol_l"], "current_vbg.base_excess_mmol_l"
         ),
         base_excess_basis=_enum(BaseExcessBasis, data["base_excess_basis"], "base_excess_basis"),
-        saturation_same_sample=_enum(
-            TriState, data["saturation_same_sample"], "saturation_same_sample"
-        ),
         venous_o2_saturation=None if saturation is None else _saturation(saturation),
-        specimen_type=_enum(SpecimenType, data["specimen_type"], "current_vbg.specimen_type"),
-        draw_site=_enum(DrawSite, data["draw_site"], "current_vbg.draw_site"),
     )
 
 
@@ -127,32 +106,6 @@ def _chemistry(value: object) -> CurrentChemistry:
             ChemistryTimeRelationship,
             data["relationship_to_vbg"],
             "current_chemistry.relationship_to_vbg",
-        ),
-    )
-
-
-def _context(value: object) -> ExplorerContext:
-    data = _object(value, _CONTEXT_KEYS, "context")
-    return ExplorerContext(
-        known_poor_perfusion_or_hemodynamic_instability=_enum(
-            TriState,
-            data["known_poor_perfusion_or_hemodynamic_instability"],
-            "context.known_poor_perfusion_or_hemodynamic_instability",
-        ),
-        recent_major_ventilation_or_treatment_change=_enum(
-            TriState,
-            data["recent_major_ventilation_or_treatment_change"],
-            "context.recent_major_ventilation_or_treatment_change",
-        ),
-        material_preanalytic_concern=_enum(
-            TriState,
-            data["material_preanalytic_concern"],
-            "context.material_preanalytic_concern",
-        ),
-        supplemental_oxygen=_enum(
-            TriState,
-            data["supplemental_oxygen"],
-            "context.supplemental_oxygen",
         ),
     )
 

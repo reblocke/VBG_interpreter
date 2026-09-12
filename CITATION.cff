@@ -5,12 +5,12 @@ type: software
 authors:
   - family-names: Locke
     given-names: Brian
-version: 0.3.0
+version: 0.4.0
 date-released: 2026-09-12
 repository-code: "https://github.com/reblocke/VBG_interpreter"
 url: "https://reblocke.github.io/VBG_interpreter/"
 license: MIT
 abstract: >-
   A static research and educational explorer that separates supplied venous measurements,
-  algebraic gas and standard-base-excess calculations, optional serum chemistry, and a scoped
-  arterial PaCO2 estimate with explicit provenance and unresolved questions.
+  algebraic gas and standard-base-excess calculations, and optional serum chemistry from rough
+  arterial estimates and a provisional compensation assessment, with matching coordinate displays.

@@ -188,33 +188,63 @@ def test_live_pyodide_singletons_progressive_chemistry_and_sbe(page, explorer_ur
     assert page.locator("#next-inputs li").count() <= 3
 
 
-def test_live_paco2_confirmation_uncertainty_and_refusal(page, explorer_url):
+def test_live_fixed_estimates_farkas_and_matching_coordinate_plots(page, explorer_url):
     _ready(page, explorer_url)
+    page.locator("#current-ph").fill("7.32")
     page.locator("#current-pco2").fill("55")
+    _submit(page)
+    expect(page.locator("#arterial-content")).to_contain_text("7.36")
+    expect(page.locator("#arterial-content")).to_contain_text("50 mmHg")
+    expect(page.locator("#arterial-content")).to_contain_text(
+        "Provisional acid–base interpretation"
+    )
+    expect(page.locator("#known-plot figcaption")).to_contain_text("pH 7.32, CO₂ 55")
+    expect(page.locator("#estimated-plot figcaption")).to_contain_text("pH 7.36, CO₂ 50")
+    assert page.locator("#estimated-plot .agreement-whisker").count() == 0
+    for attr in ("data-x-min", "data-x-max", "data-y-min", "data-y-max"):
+        assert page.locator("#known-plot svg").get_attribute(attr) == page.locator(
+            "#estimated-plot svg"
+        ).get_attribute(attr)
+    # Reference-cross coordinate mapping: [7,7.8] x [20,80], plot x=65..370/y=40..290.
+    known = page.locator("#known-plot .coordinate-point")
+    assert float(known.get_attribute("cx")) == pytest.approx(187)
+    assert float(known.get_attribute("cy")) == pytest.approx(144.1666667)
     page.locator("#venous-saturation").fill("75")
+    expect(page.locator("#results-panel")).to_be_hidden()
     _submit(page)
-    expect(page.locator("#arterial-content")).to_contain_text("same-sample")
-    page.locator("#context-details summary").click()
-    page.select_option("#saturation-same-sample", "YES")
-    _submit(page)
-    expect(page.locator("#arterial-content")).to_contain_text("Applicability uncertain")
     expect(page.locator("#arterial-content")).to_contain_text("51.04")
-    for field, value in [
-        ("specimen-type", "PERIPHERAL_VENOUS"),
-        ("draw-site", "UPPER_EXTREMITY_PERIPHERAL"),
-        ("poor-perfusion", "NO"),
-        ("recent-change", "NO"),
-        ("preanalytic-concern", "NO"),
-        ("supplemental-oxygen", "NO"),
-    ]:
-        page.select_option("#" + field, value)
+    expect(page.locator("#arterial-content")).to_contain_text("41.84–59.78")
+    expect(page.locator("#arterial-content")).to_contain_text("Applicability is unassessed")
+    assert page.locator("#estimated-plot .agreement-whisker").count() == 3
+    assert page.locator("#known-plot .agreement-whisker").count() == 0
+    page.locator("#methods-card summary").first.click()
+    expect(page.locator("#methods-content")).to_contain_text("0.22")
+    expect(page.locator("#methods-content")).to_contain_text("+ 0.04")
+    expect(page.locator("label[for=venous-saturation]")).to_contain_text(
+        "Same-sample venous O₂ saturation — optional"
+    )
+    expect(page.locator("#methods-content")).not_to_contain_text("fixed paco2 offset")
+    assert page.locator("#context-details").count() == 0
+    assert page.locator(".notice").count() == 0
+    assert (
+        page.get_by_text(
+            "Research and education only. Use synthetic values only.", exact=False
+        ).count()
+        == 1
+    )
+    page.locator("#venous-saturation").fill("")
     _submit(page)
-    expect(page.locator("#arterial-content")).not_to_contain_text("Applicability uncertain")
-    expect(page.locator("#arterial-content")).to_contain_text("45.72–56.87")
-    page.select_option("#draw-site", "FEMORAL")
+    expect(page.locator("#estimated-plot figcaption")).to_contain_text("CO₂ 50")
+    assert page.locator("#estimated-plot .agreement-whisker").count() == 0
+    # kPa changes neither the measured plot coordinates nor the estimate.
+    page.locator("#current-pco2").fill("7.332730262565")
+    page.select_option("#current-pco2-unit", "kPa")
     _submit(page)
-    expect(page.locator("#arterial-content")).to_contain_text("outside upper-extremity")
-    expect(page.locator("#arterial-content")).not_to_contain_text("51.04")
+    expect(page.locator("#known-plot figcaption")).to_contain_text("CO₂ 55")
+    page.locator("#venous-saturation").fill("101")
+    page.locator("#interpret-button").click()
+    expect(page.locator("#form-errors")).to_contain_text("range")
+    expect(page.locator("#results-panel")).to_be_hidden()
 
 
 def test_reset_and_edit_invalidate_pending_response_and_keep_decimals(page, explorer_url):
@@ -303,7 +333,17 @@ def test_complete_keyboard_cycle_and_runtime_retry(page, explorer_url):
 
 def test_named_landmarks_targets_forced_colors_and_400_percent_text(page, explorer_url):
     _open_mocked_explorer(page, explorer_url)
-    page.locator("#context-details summary").click()
+    from vbg_interpreter import interpret_vbg
+    from vbg_interpreter.models import CurrentVbg, Pco2Unit, VbgExplorerRequest
+
+    page.locator("#current-ph").fill("7.32")
+    page.locator("#interpret-button").click()
+    payload = {
+        "result": interpret_vbg(
+            VbgExplorerRequest(CurrentVbg(ph=7.32, pco2=55, pco2_unit=Pco2Unit.MMHG))
+        ).to_dict()
+    }
+    page.evaluate("payload => window.__resolveExplorerRequest(0,payload)", payload)
     page.emulate_media(reduced_motion="reduce", forced_colors="active")
     for element in page.locator(
         "input:visible,select:visible,button:visible,summary:visible"
@@ -318,4 +358,34 @@ def test_named_landmarks_targets_forced_colors_and_400_percent_text(page, explor
     page.evaluate("document.documentElement.style.fontSize = '400%'")
     for font in ("system-ui", "Verdana, sans-serif"):
         page.evaluate("font => document.documentElement.style.fontFamily = font", font)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("ph,co2", [(7.0, 20), (7.8, 80), (6.8, 120), (8.2, 10), (400, 1000000)])
+def test_coordinate_extents_reference_cross_and_no_clipped_points(page, explorer_url, ph, co2):
+    from vbg_interpreter import interpret_vbg
+    from vbg_interpreter.models import CurrentVbg, Pco2Unit, VbgExplorerRequest
+
+    _open_mocked_explorer(page, explorer_url)
+    page.locator("#current-ph").fill(str(ph))
+    page.locator("#interpret-button").click()
+    result = interpret_vbg(VbgExplorerRequest(CurrentVbg(ph=ph, pco2=co2, pco2_unit=Pco2Unit.MMHG)))
+    page.evaluate(
+        "payload => window.__resolveExplorerRequest(0,payload)", {"result": result.to_dict()}
+    )
+    for id in ("known-plot", "estimated-plot"):
+        svg = page.locator(f"#{id} svg")
+        assert float(svg.get_attribute("data-x-min")) <= min(ph, 7)
+        assert float(svg.get_attribute("data-x-max")) >= max(ph + 0.04, 7.8)
+        assert float(svg.get_attribute("data-y-min")) <= min(co2 - 5, 20)
+        assert float(svg.get_attribute("data-y-max")) >= max(co2, 80)
+        assert page.locator(f"#{id} .reference-line").count() == 2
+        shape = page.locator(f"#{id} .coordinate-point")
+        if id == "known-plot":
+            x, y = float(shape.get_attribute("cx")), float(shape.get_attribute("cy"))
+        else:
+            x, y = float(shape.get_attribute("x")) + 6, float(shape.get_attribute("y")) + 6
+        assert 65 <= x <= 370 and 40 <= y <= 290
+    for width in (390, 320):
+        page.set_viewport_size({"width": width, "height": 844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

@@ -19,7 +19,7 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
-      <p class="eyebrow">Research / educational software · v0.3</p>
+      <p class="eyebrow">Research / educational software · v0.4</p>
       <h1>VBG Acid–Base Explorer</h1>
       <p class="lede">
         Enter the VBG and chemistry values you have. See what those inputs
@@ -39,20 +39,6 @@
       <button id="retry-engine" type="button" hidden>Retry engine</button>
     </header>
     <main id="main-content" tabindex="-1">
-      <section class="notice" aria-label="Research and privacy boundaries">
-        <strong>Research and education only. Use synthetic values only.</strong>
-        <p>
-          This preview is not clinically validated, is not medical advice, and
-          must not be used to diagnose, treat, or replace an arterial blood gas
-          when arterial confirmation is required. Do not enter PHI or real
-          patient data.
-        </p>
-        <p>
-          Calculations run in this browser. Entered values are not stored,
-          placed in URLs, logged, or sent to a calculation server. Loading the
-          app uses ordinary same-origin hosting requests.
-        </p>
-      </section>
       <p
         id="assistive-status"
         class="visually-hidden"
@@ -68,7 +54,9 @@
               <legend>VBG</legend>
               <p>
                 Enter at least one value. Any two of pH, PvCO₂, and blood-gas
-                HCO₃ allow algebraic completion.
+                HCO₃ allow algebraic completion. Measured pH and PvCO₂ also
+                enable a best-guess arterial interpretation; optional saturation
+                switches the CO₂ estimate to Farkas.
               </p>
               <div class="field-grid">
                 <label for="current-ph"
@@ -108,7 +96,7 @@
                     <option value="CALCULATED">Calculated</option>
                   </select></label
                 ><label for="base-excess"
-                  >Reported venous base excess <small>mmol/L</small
+                  >Reported venous base excess <small>mmol/L · optional</small
                   ><input
                     id="base-excess"
                     name="base-excess"
@@ -127,7 +115,7 @@
                     <option value="ACTUAL">Actual / whole-blood BE</option>
                   </select></label
                 ><label for="venous-saturation"
-                  >Measured venous O₂ saturation<input
+                  >Same-sample venous O₂ saturation — optional<input
                     id="venous-saturation"
                     name="venous-saturation"
                     inputmode="decimal"
@@ -140,9 +128,7 @@
                     id="venous-saturation-unit"
                     name="venous-saturation-unit"
                   >
-                    <option value="PERCENTAGE_POINTS">
-                      Percentage points (%)
-                    </option>
+                    <option value="PERCENTAGE_POINTS">Percent (%)</option>
                     <option value="FRACTION_0_TO_1">Fraction (0 to 1)</option>
                   </select></label
                 >
@@ -216,89 +202,6 @@
                 a measured chemistry value.
               </p>
             </fieldset>
-            <details class="optional-group" id="context-details">
-              <summary>Improve arterial PaCO₂ estimate</summary>
-              <div class="field-grid">
-                <label for="specimen-type"
-                  >Specimen type<select id="specimen-type" name="specimen-type">
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="PERIPHERAL_VENOUS">Peripheral venous</option>
-                    <option value="CENTRAL_VENOUS">Central venous</option>
-                    <option value="MIXED_VENOUS">Mixed venous</option>
-                    <option value="CAPILLARY">Capillary</option>
-                  </select></label
-                ><label for="draw-site"
-                  >Draw site<select id="draw-site" name="draw-site">
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="UPPER_EXTREMITY_PERIPHERAL">
-                      Upper extremity peripheral
-                    </option>
-                    <option value="LOWER_EXTREMITY_PERIPHERAL">
-                      Lower extremity peripheral
-                    </option>
-                    <option value="FEMORAL">Femoral</option>
-                    <option value="CENTRAL_CATHETER">Central catheter</option>
-                    <option value="PULMONARY_ARTERY_CATHETER">
-                      Pulmonary artery catheter
-                    </option>
-                    <option value="OTHER">Other</option>
-                  </select></label
-                ><label for="poor-perfusion"
-                  >Known poor perfusion / hemodynamic instability<select
-                    id="poor-perfusion"
-                    name="poor-perfusion"
-                  >
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="NO">No</option>
-                    <option value="YES">Yes</option>
-                  </select></label
-                ><label for="recent-change"
-                  >Recent major ventilation / treatment change<select
-                    id="recent-change"
-                    name="recent-change"
-                  >
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="NO">No</option>
-                    <option value="YES">Yes</option>
-                  </select></label
-                ><label for="preanalytic-concern"
-                  >Material preanalytic concern<select
-                    id="preanalytic-concern"
-                    name="preanalytic-concern"
-                  >
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="NO">No</option>
-                    <option value="YES">Yes</option>
-                  </select></label
-                ><label for="supplemental-oxygen"
-                  >Supplemental oxygen<select
-                    id="supplemental-oxygen"
-                    name="supplemental-oxygen"
-                  >
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="NO">No</option>
-                    <option value="YES">Yes</option>
-                  </select></label
-                ><label
-                  for="saturation-same-sample"
-                  data-requires="venous-saturation"
-                  hidden
-                  >Saturation confirmed from this same VBG sample?<select
-                    id="saturation-same-sample"
-                    name="saturation-same-sample"
-                  >
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="NO">No</option>
-                    <option value="YES">Yes</option>
-                  </select></label
-                >
-              </div>
-              <p class="field-note">
-                Same-sample confirmation is required. Unknown applicability is
-                explicitly marked; known out-of-scope conditions withhold
-                estimation.
-              </p>
-            </details>
             <p
               id="form-errors"
               class="error"
@@ -321,30 +224,29 @@
           aria-label="Interpretation results"
           hidden
         >
-          <section
-            id="venous-card"
-            class="panel"
-            aria-labelledby="venous-heading"
-          >
-            <h2 id="venous-heading">Venous gas</h2>
-            <div id="venous-content"></div>
-          </section>
-          <section
-            id="chemistry-card"
-            class="panel"
-            aria-labelledby="chemistry-heading"
-          >
-            <h2 id="chemistry-heading">Serum chemistry</h2>
-            <div id="chemistry-content"></div>
-          </section>
-          <section
-            id="arterial-card"
-            class="panel"
-            aria-labelledby="arterial-heading"
-          >
-            <h2 id="arterial-heading">Arterial PaCO₂ estimate</h2>
-            <div id="arterial-content"></div>
-          </section>
+          <div class="result-comparison">
+            <section class="panel" aria-labelledby="known-heading">
+              <h2 id="known-heading">What’s known</h2>
+              <div id="known-plot"></div>
+              <section id="venous-card" aria-labelledby="venous-heading">
+                <h3 id="venous-heading">Venous gas</h3>
+                <div id="venous-content"></div>
+              </section>
+              <section id="chemistry-card" aria-labelledby="chemistry-heading">
+                <h3 id="chemistry-heading">Serum chemistry</h3>
+                <div id="chemistry-content"></div>
+              </section>
+            </section>
+            <section
+              id="arterial-card"
+              class="panel"
+              aria-labelledby="arterial-heading"
+            >
+              <h2 id="arterial-heading">Best guess</h2>
+              <div id="estimated-plot"></div>
+              <div id="arterial-content"></div>
+            </section>
+          </div>
           <section class="panel" aria-labelledby="uncertainty-heading">
             <h2 id="uncertainty-heading">What remains uncertain</h2>
             <ul id="uncertainty-content"></ul>
@@ -352,18 +254,30 @@
             <ol id="next-inputs"></ol>
           </section>
           <details class="panel" id="methods-card">
-            <summary>Methods and evidence</summary>
+            <summary>Formulas used and evidence</summary>
             <div id="methods-content"></div>
           </details>
         </section>
       </div>
     </main>
     <footer>
-      Public research preview v0.3.0. Component evidence and software
-      verification do not establish clinical validation.
-      <a href="https://github.com/reblocke/VBG_interpreter"
-        >Source and methods</a
-      >.
+      <p>
+        Research and education only. Use synthetic values only. Do not enter PHI
+        or real patient data. This preview is not clinically validated, is not
+        medical advice, and must not be used to diagnose, treat, or replace an
+        arterial blood gas when arterial confirmation is required.
+      </p>
+      <p>
+        Calculations run in this browser. Entered values are not stored, placed
+        in URLs, logged, or sent to a calculation server. Loading the app uses
+        ordinary same-origin hosting requests.
+      </p>
+      <p>
+        Public research preview v0.4.0.
+        <a href="https://github.com/reblocke/VBG_interpreter"
+          >Source and methods</a
+        >.
+      </p>
     </footer>
   </body>
 </html>

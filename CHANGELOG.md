@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0] - 2026-09-12
+
+- Add rough arterial pH/CO2 estimates from measured venous inputs; optional same-sample saturation switches CO2 to Farkas automatically.
+- Add modeled arterial bicarbonate and provisional upstream Boston assessment without requiring BE or chemistry.
+- Separate “What’s known” and “Best guess” with matching accessible pH × CO2 coordinate plots.
+- Remove the context questionnaire and duplicate top warning; preserve the bottom formulas box and consolidate general privacy/research wording in the footer.
+- Introduce request/result schema v4 with no prerelease compatibility shim. All estimate applicability remains unassessed.
+
 ## [0.3.0] - 2026-09-12
 
 - Accept any one current VBG value; keep all CMP/BMP fields optional and calculations independent.

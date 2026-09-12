@@ -2,7 +2,8 @@
 
 from copy import deepcopy
 
-from vbg_interpreter.arterial_paco2 import estimate_arterial_paco2
+from vbg_interpreter.arterial_paco2 import estimate_arterial_paco2, estimate_arterial_ph
+from vbg_interpreter.best_guess import assess_estimated_gas, modeled_hco3
 from vbg_interpreter.chemistry import calculate_chemistry
 from vbg_interpreter.evidence import METHODS
 from vbg_interpreter.information import highest_value_next_inputs
@@ -17,6 +18,9 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
     gas = complete_venous_gas(request.current_vbg)
     chemistry = calculate_chemistry(request, gas)
     estimate = estimate_arterial_paco2(request)
+    ph = estimate_arterial_ph(request)
+    hco3 = modeled_hco3(ph, estimate)
+    provisional = assess_estimated_gas(ph, estimate, hco3)
     unresolved = [
         "Arterial pH, arterial oxygenation, and a complete arterial acid–base "
         "interpretation are not established."
@@ -25,11 +29,16 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
         unresolved.append(
             "PaCO2 estimation is unavailable from the supplied measurements and context."
         )
-    elif estimate.applicability == "APPLICABILITY_UNCERTAIN":
-        unresolved.append("The PaCO2 estimate has uncertain applicability to the supplied context.")
     if any(
         c.status is CalculationStatus.MODEL_DOMAIN_REFUSAL
-        for c in (*gas.calculated_values.values(), gas.standard_base_excess, *chemistry.values())
+        for c in (
+            *gas.calculated_values.values(),
+            gas.standard_base_excess,
+            *chemistry.values(),
+            ph,
+            estimate,
+            hco3,
+        )
     ):
         unresolved.append(
             "A calculation exceeded its numerical domain; other supported results remain available."
@@ -40,6 +49,9 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
         chemistry=chemistry,
         screening=screening_result(),
         arterial_paco2_estimate=estimate,
+        arterial_ph_estimate=ph,
+        modeled_arterial_hco3=hco3,
+        provisional_interpretation=provisional,
         unresolved_questions=tuple(unresolved),
         highest_value_next_inputs=highest_value_next_inputs(request, gas, chemistry, estimate),
         methods=deepcopy(METHODS),

@@ -1,4 +1,5 @@
-const SCHEMA = "vbg_explorer_result/3.0";
+import { renderCoordinatePlots } from "./coordinate-plots.js";
+const SCHEMA = "vbg_explorer_result/4.0";
 const LABELS = {
   ph: "Venous pH",
   pco2: "PvCO₂",
@@ -140,6 +141,8 @@ export function clearExplorerResult() {
     "uncertainty-content",
     "next-inputs",
     "methods-content",
+    "known-plot",
+    "estimated-plot",
   ]) {
     document.getElementById(id).replaceChildren();
   }
@@ -233,45 +236,76 @@ export function renderExplorerResult(payload) {
   if (anyChemistry)
     for (const [key, calc] of Object.entries(result.chemistry))
       renderCalculation(chemistry, label(key), calc);
-  const source = result.input_summary.current_vbg;
-  document.getElementById("arterial-card").hidden =
-    source.pco2 === null && source.venous_o2_saturation === null;
   const arterial = document.getElementById("arterial-content");
   const estimate = result.arterial_paco2_estimate;
+  const ph = result.arterial_ph_estimate;
+  renderCalculation(arterial, "Estimated arterial pH", ph);
+  arterial.append(node("h3", "Estimated PaCO₂"));
   if (estimate.status === "AVAILABLE") {
-    if (estimate.applicability === "APPLICABILITY_UNCERTAIN")
-      arterial.append(
-        node(
-          "p",
-          "Applicability uncertain — required specimen or clinical context is unknown.",
-          "warning",
-        ),
-      );
-    for (const key of ["measured_pvco2", "saturation_percent", "point"])
-      metric(arterial, label(key), estimate.values[key], estimate.units[key]);
-    metric(
-      arterial,
-      "Deterministic agreement range",
-      `${number(estimate.values.lower)}–${number(estimate.values.upper)}`,
-      "mmHg",
-    );
+    metric(arterial, null, estimate.values.point, "mmHg");
     arterial.append(
       node(
         "p",
-        `Oxygen profile: ${label(estimate.values.oxygen_profile)}.`,
-        "limitation",
+        estimate.method_id === "farkas_simplified_93_v1"
+          ? "Method: Farkas with same-sample venous saturation."
+          : "Method: fixed −5 mmHg correction.",
       ),
     );
+    if (Number.isFinite(estimate.values.lower))
+      metric(
+        arterial,
+        "Population agreement range",
+        `${number(estimate.values.lower)}–${number(estimate.values.upper)}`,
+        "mmHg",
+      );
     for (const text of estimate.limitations)
       arterial.append(node("p", text, "limitation"));
   } else
     renderCalculation(arterial, "Estimated PaCO₂", estimate, {
       showTitle: false,
     });
+  renderCalculation(
+    arterial,
+    "Modeled arterial bicarbonate",
+    result.modeled_arterial_hco3,
+  );
+  const provisional = result.provisional_interpretation;
+  arterial.append(node("h3", "Provisional acid–base interpretation"));
+  if (provisional.status === "AVAILABLE") {
+    const assessment = provisional.assessment;
+    arterial.append(
+      node("p", assessment.primary_process_guess),
+      node("p", assessment.modeled_vs_expected),
+    );
+    for (const note of assessment.notes.filter(
+      (text) => !text.startsWith("A single blood gas"),
+    ))
+      arterial.append(node("p", note, "limitation"));
+  } else
+    arterial.append(
+      node(
+        "p",
+        provisional.status === "UNAVAILABLE_MISSING_INPUT"
+          ? "Requires both measured pH and PvCO₂ for the estimated gas interpretation."
+          : "Interpretation unavailable outside the numerical domain.",
+        "limitation",
+      ),
+    );
+  for (const text of provisional.limitations)
+    arterial.append(node("p", text, "limitation"));
+  renderCoordinatePlots(result);
   for (const text of result.unresolved_questions)
     document.getElementById("uncertainty-content").append(node("li", text));
   for (const text of result.highest_value_next_inputs)
     document.getElementById("next-inputs").append(node("li", text));
+  const calculations = [
+    ...Object.values(result.venous_gas.calculated_values),
+    result.venous_gas.standard_base_excess,
+    ...Object.values(result.chemistry),
+    estimate,
+    ph,
+    result.modeled_arterial_hco3,
+  ];
   const methods = document.getElementById("methods-content");
   methods.append(
     node(
@@ -279,7 +313,18 @@ export function renderExplorerResult(payload) {
       "No categorical PvCO₂ screening threshold is configured. Screening, prediction, compensation classification, and management equivalence are separate claims.",
     ),
   );
-  for (const [id, method] of Object.entries(result.methods)) {
+  const usedMethods = new Set(
+    calculations
+      .filter((c) => c.status !== "UNAVAILABLE_MISSING_INPUT")
+      .map((c) => c.method_id),
+  );
+  if (result.venous_gas.consistency.status === "AVAILABLE")
+    usedMethods.add(result.venous_gas.consistency.method_id);
+  if (provisional.status !== "UNAVAILABLE_MISSING_INPUT")
+    usedMethods.add(provisional.method_id);
+  for (const [id, method] of Object.entries(result.methods).filter(([id]) =>
+    usedMethods.has(id),
+  )) {
     methods.append(
       node("h3", label(id)),
       node("p", method.description),
@@ -297,12 +342,6 @@ export function renderExplorerResult(payload) {
   }
   const details = node("details");
   details.append(node("summary", "Input and output provenance"));
-  const calculations = [
-    ...Object.values(result.venous_gas.calculated_values),
-    result.venous_gas.standard_base_excess,
-    ...Object.values(result.chemistry),
-    estimate,
-  ];
   for (const calc of calculations.filter((c) => c.status === "AVAILABLE")) {
     details.append(
       node(
@@ -329,6 +368,15 @@ export function renderExplorerResult(payload) {
       partition.values.reconstructed_sbe,
       "mmol/L",
     );
+  }
+  if (provisional.status === "AVAILABLE") {
+    const expected = node("details");
+    expected.append(node("summary", "Compensation comparison used"));
+    for (const [key, value] of Object.entries(
+      provisional.assessment.expected_compensation,
+    ))
+      metric(expected, label(key), value);
+    methods.append(expected);
   }
   methods.append(details);
   document.getElementById("results-panel").hidden = false;

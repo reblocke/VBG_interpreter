@@ -4,15 +4,38 @@ from __future__ import annotations
 
 import math
 
-from vbg_interpreter.models import Calculation, CalculationStatus, TriState
+from vbg_interpreter.models import Calculation, CalculationStatus
 
 MMHG_PER_KPA = 7.500616827041697
-PACO2_PROFILES = {
-    TriState.NO: ("jorg_2023_no_supplemental_oxygen", -5.83, 5.32),
-    TriState.YES: ("jorg_2023_supplemental_oxygen", -8.74, 9.20),
-    TriState.UNKNOWN: ("jorg_2023_oxygen_unknown_conservative", -8.74, 9.20),
-}
+PACO2_CONSERVATIVE_ERRORS = (-8.74, 9.20)
 METHODS = {
+    "fixed_ph_offset_v1": {
+        "evidence_tier": "OWNER_SELECTED_HEURISTIC",
+        "description": "Estimated arterial pH = measured venous pH + 0.04; rough fixed correction.",
+        "sources": ["docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"],
+    },
+    "fixed_paco2_offset_v1": {
+        "evidence_tier": "OWNER_SELECTED_HEURISTIC",
+        "description": "Estimated PaCO2 = measured PvCO2(mmHg) − 5; rough fixed correction.",
+        "sources": ["docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"],
+    },
+    "modeled_arterial_hh_v1": {
+        "evidence_tier": "DERIVED_FROM_ESTIMATES",
+        "description": (
+            "Modeled arterial HCO3 = 0.0307 × estimated PaCO2 × 10^(estimated pH − 6.095)."
+        ),
+        "sources": ["docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"],
+    },
+    "boston_estimated_gas_v1": {
+        "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+        "description": (
+            "Provisional Boston compensation assessment of the estimated "
+            "arterial gas; chronicity unestablished."
+        ),
+        "sources": [
+            "https://github.com/reblocke/stewart-light/tree/f277cac54801d85366cbadbf11804f6643f6a869"
+        ],
+    },
     "henderson_hasselbalch_v1": {
         "evidence_tier": "DERIVED_CALCULATION",
         "description": "Venous gas completion: HCO3 = 0.0307 × PvCO2 × 10^(pH − 6.095).",

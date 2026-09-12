@@ -1,6 +1,6 @@
 # Evidence and provenance
 
-This record describes the v0.3 research/educational contract. Passing synthetic checks does not
+This record describes the v0.4 research/educational contract. Passing synthetic checks does not
 validate the full Explorer, establish analyzer equivalence, or support clinical management.
 
 ## Venous gas and standard base excess
@@ -35,31 +35,49 @@ arterial PaCO2 are not operands. Normothermia (37°C) is assumed and displayed. 
 calculation with method ID `venous_sbe_van_slyke_37c_v1`, not a measured or arterial value.
 No actual-Hb, temperature-correction, corrected-SBE, or analyzer-matching model is added.
 
-## PaCO2 component
+## Arterial estimates and provisional interpretation
 
-`estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample venous saturation%)`.
+The owner selected rough point corrections on 2026-09-12: arterial pH = measured venous pH +0.04,
+and PaCO2 = measured PvCO2 −5 mmHg when saturation is absent. These exact offsets are product
+heuristics, not claims that population agreement establishes an individual correction. Byrne AL
+et al. Peripheral venous and arterial blood gas analysis in adults: are they comparable?
+*Respirology*. 2014;19:168–175. [doi:10.1111/resp.12225](https://doi.org/10.1111/resp.12225)
+reports a pooled pH difference near 0.03 and variability in CO2 agreement. That literature is
+context for limitations, not validation of this combined algorithm. No individual fixed-offset
+uncertainty range is supplied.
 
-The component is `farkas_simplified_93_v1`, originally described in the Farkas public manuscript
-and externally evaluated by Jörg M, Öster M, Wretborn J, Wilhelms DB. Agreement of pCO2 in venous
-to arterial blood gas conversion models in undifferentiated emergency patients. *Intensive Care
-Medicine Experimental*. 2023;11:80.
-[doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w).
+With unit-explicit same-sample venous saturation, the PaCO2 method becomes:
+`estimated PaCO2 = measured PvCO2 − 0.22 × (93 − venous saturation%)`.
+This replaces the −5 correction; pH retains +0.04. The component is
+`farkas_simplified_93_v1`, described in the Farkas public manuscript and evaluated by Jörg M,
+Öster M, Wretborn J, Wilhelms DB. Agreement of pCO2 in venous to arterial blood gas conversion
+models in undifferentiated emergency patients. *Intensive Care Medicine Experimental*.
+2023;11:80. [doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w).
 
-Retained estimate-minus-arterial errors (mmHg) are −5.83 to +5.32 without oxygen and −8.74 to
-+9.20 with oxygen. The deterministic arterial-reference range is therefore
-`[estimate − upper_error, estimate − lower_error]`. Unknown oxygen selects the latter existing
-conservative profile and is labeled unknown. Numerical endpoints must be finite and positive;
-there is no clamping. Saturation above 93% retains a model-reference caveat.
+The study used upper-extremity peripheral sampling. The v0.4 form does not assess sample site,
+perfusion, treatment changes, preanalytic issues or supplemental oxygen. All applicability is
+explicitly unassessed. Same-sample meaning belongs to the saturation field itself; no extra
+confirmation is required. The conservative published oxygen-profile estimate-minus-arterial
+errors −8.74 to +9.20 mmHg produce the range [estimate −9.20, estimate +8.74]. It is population
+agreement, not individual confidence or a jointly validated pH/CO2 region. Nonpositive or
+nonfinite point/range values cause local refusal without clamping or fallback. Saturation above
+93% retains the model-reference caveat. SpO2/PO2 and derived PvCO2 are not model inputs.
 
-The study sampled upper-extremity peripheral veins. Full eligibility requires that specimen/site
-and explicit NO for the three documented adverse-context flags. Known incompatible context
-withholds the estimate. Unknown context can produce `APPLICABILITY_UNCERTAIN`, which is not
-proof of applicability. Explicit same-sample confirmation remains mandatory. No threshold for
-hemodynamics, sampling delay, or treatment recency is invented.
+Modeled arterial HCO3 uses the same retained HH constants applied to the estimated pH/PaCO2 pair.
+Reported or derived venous HCO3 remains separate. The pinned `stewartlight@f277cac` Boston helper
+receives only the estimated pH, PaCO2, modeled HCO3 and disabled chronic emphasis through a
+structural adapter; no SBE or chemistry is fabricated. Its existing thresholds and compensation
+rules are preserved. “Measured” comparison wording becomes “modeled,” and the output is labeled
+provisional. Disabling chronic emphasis does not establish acuity; the broad acute/chronic
+comparisons are retained. No arterial SBE or new compensated-state enumeration is computed.
 
-The externally evaluated label belongs only to the PaCO2 component; it does not validate
-arterial pH, a derived PvCO2 input, a combined algorithm, patient-specific interval coverage, or
-management equivalence. There is no configured categorical screening threshold.
+External evaluation applies only to the PaCO2 component, not the fixed pH heuristic, derived
+HCO3, provisional assessment, patient-specific coverage, or the combined workflow. Screening
+remains NOT_CONFIGURED. Software oracle/fixture checks are not clinical validation.
+
+The coordinate plots display measured versus estimated points; they do not infer diagnoses.
+The pH 7.40 / CO2 40 mmHg reference cross is a common descriptive coordinate, not a validated
+venous decision boundary. A vertical Farkas whisker is not an arterial confidence rectangle.
 
 ## Serum chemistry
 
@@ -84,8 +102,8 @@ owner-approved adaptation. Its numerical closure is software evidence, not clini
 Bloom BM, Grundlingh J, Bestwick JP, Harris T. The role of venous blood gas in the Emergency
 Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine*.
 2014;21(2):81–88. [doi:10.1097/MEJ.0b013e32836437cf](https://doi.org/10.1097/MEJ.0b013e32836437cf).
-Population agreement summaries are context only. They are not used as individual arterial
-conversion coefficients or to construct a joint arterial region in v0.3.
+Population agreement summaries are context only. They are not used as individual validated
+conversion coefficients or to construct a joint arterial region in v0.4.
 
 Source equations and bibliographic records were checked for this change on 2026-09-12. No
 article, table, figure, standard, patient dataset, or publisher layout is distributed. Existing

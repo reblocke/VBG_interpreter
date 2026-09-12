@@ -9,14 +9,10 @@ from vbg_interpreter.models import (
     BaseExcessBasis,
     CurrentChemistry,
     CurrentVbg,
-    DrawSite,
-    ExplorerContext,
     Hco3Basis,
     Pco2Unit,
     SaturationInput,
     SaturationUnit,
-    SpecimenType,
-    TriState,
     VbgExplorerRequest,
 )
 from vbg_interpreter.models import (
@@ -35,19 +31,13 @@ def request(**gas):
     return VbgExplorerRequest(CurrentVbg(**gas))
 
 
-def eligible(**changes):
+def saturated_request(**changes):
     gas = CurrentVbg(
         pco2=55,
         pco2_unit=Pco2Unit.MMHG,
         venous_o2_saturation=SaturationInput(75, SaturationUnit.PERCENTAGE_POINTS),
-        saturation_same_sample=TriState.YES,
-        specimen_type=SpecimenType.PERIPHERAL_VENOUS,
-        draw_site=DrawSite.UPPER_EXTREMITY_PERIPHERAL,
     )
-    return VbgExplorerRequest(
-        replace(gas, **changes),
-        context=ExplorerContext(TriState.NO, TriState.NO, TriState.NO, TriState.NO),
-    )
+    return VbgExplorerRequest(replace(gas, **changes))
 
 
 def full_chemistry(**changes):
@@ -71,7 +61,7 @@ def test_every_single_value_is_a_partial_result(gas):
         c.status is Status.UNAVAILABLE_MISSING_INPUT
         for c in result.venous_gas.calculated_values.values()
     )
-    assert result.arterial_paco2_estimate.status is Status.UNAVAILABLE_MISSING_INPUT
+    assert (result.arterial_paco2_estimate.status is Status.AVAILABLE) == ("pco2" in gas)
     assert result.screening["status"] == "NOT_CONFIGURED"
     assert len(result.highest_value_next_inputs) <= 3
 
@@ -92,7 +82,7 @@ def test_hh_and_sbe_for_each_pair(gas, axis, target):
     assert coordinate.output_provenance == "CALCULATED_HENDERSON_HASSELBALCH"
     assert result.venous_gas.standard_base_excess.values["sbe"] == pytest.approx(2.563403169179708)
     assert "37°C" in " ".join(result.venous_gas.standard_base_excess.limitations)
-    assert result.arterial_paco2_estimate.status is not Status.AVAILABLE
+    assert (result.arterial_paco2_estimate.status is Status.AVAILABLE) == ("pco2" in gas)
 
 
 def test_all_three_preserve_report_and_use_ph_pco2_for_sbe():
@@ -127,99 +117,23 @@ def test_sbe_reference_equation_without_extra_thresholds():
     assert sbe_from_ph_hco3(ph=7.2, hco3_mmol_l=12) == pytest.approx(-14.2704042)
 
 
-@pytest.mark.parametrize(
-    "oxygen,interval",
-    [
-        (TriState.NO, (45.72, 56.87)),
-        (TriState.YES, (41.84, 59.78)),
-        (TriState.UNKNOWN, (41.84, 59.78)),
-    ],
-)
-def test_paco2_numeric_profiles_and_sign(oxygen, interval):
-    req = eligible()
-    req = replace(req, context=replace(req.context, supplemental_oxygen=oxygen))
-    estimate = interpret_vbg(req).arterial_paco2_estimate
-    assert estimate.status is Status.AVAILABLE
-    assert estimate.applicability == "ELIGIBLE"
-    assert estimate.values["point"] == pytest.approx(51.04)
-    assert (estimate.values["lower"], estimate.values["upper"]) == pytest.approx(interval)
-    assert estimate.evidence_tier == "EXTERNALLY_EVALUATED"
-
-
 def test_explicit_units_are_equivalent_without_guessing():
-    req = eligible(
+    req = saturated_request(
         pco2=55 / 7.500616827041697,
         pco2_unit=Pco2Unit.KPA,
         venous_o2_saturation=SaturationInput(0.75, SaturationUnit.FRACTION_0_TO_1),
     )
     assert interpret_vbg(req).arterial_paco2_estimate.values["point"] == pytest.approx(51.04)
     low = interpret_vbg(
-        eligible(venous_o2_saturation=SaturationInput(0.75, SaturationUnit.PERCENTAGE_POINTS))
+        saturated_request(
+            venous_o2_saturation=SaturationInput(0.75, SaturationUnit.PERCENTAGE_POINTS)
+        )
     )
     assert low.arterial_paco2_estimate.values["point"] != pytest.approx(51.04)
 
 
-@pytest.mark.parametrize(
-    "same,status",
-    [
-        (TriState.YES, Status.AVAILABLE),
-        (TriState.NO, Status.UNAVAILABLE_OUTSIDE_SCOPE),
-        (TriState.UNKNOWN, Status.UNAVAILABLE_MISSING_INPUT),
-    ],
-)
-def test_same_sample_is_a_real_gate(same, status):
-    assert (
-        interpret_vbg(eligible(saturation_same_sample=same)).arterial_paco2_estimate.status
-        is status
-    )
-
-
-@pytest.mark.parametrize("specimen", list(SpecimenType))
-def test_every_specimen(specimen):
-    estimate = interpret_vbg(eligible(specimen_type=specimen)).arterial_paco2_estimate
-    if specimen is SpecimenType.UNKNOWN:
-        assert estimate.status is Status.AVAILABLE
-        assert estimate.applicability == "APPLICABILITY_UNCERTAIN"
-    elif specimen is SpecimenType.PERIPHERAL_VENOUS:
-        assert estimate.applicability == "ELIGIBLE"
-    else:
-        assert estimate.status is Status.UNAVAILABLE_OUTSIDE_SCOPE
-
-
-@pytest.mark.parametrize("site", list(DrawSite))
-def test_every_draw_site(site):
-    estimate = interpret_vbg(eligible(draw_site=site)).arterial_paco2_estimate
-    if site is DrawSite.UNKNOWN:
-        assert estimate.applicability == "APPLICABILITY_UNCERTAIN"
-    elif site is DrawSite.UPPER_EXTREMITY_PERIPHERAL:
-        assert estimate.applicability == "ELIGIBLE"
-    else:
-        assert estimate.status is Status.UNAVAILABLE_OUTSIDE_SCOPE
-
-
-@pytest.mark.parametrize(
-    "field",
-    [
-        "known_poor_perfusion_or_hemodynamic_instability",
-        "recent_major_ventilation_or_treatment_change",
-        "material_preanalytic_concern",
-    ],
-)
-@pytest.mark.parametrize("value", [TriState.YES, TriState.UNKNOWN])
-def test_context_unknown_is_not_favorable_and_known_risks_block(field, value):
-    req = eligible()
-    estimate = interpret_vbg(
-        replace(req, context=replace(req.context, **{field: value}))
-    ).arterial_paco2_estimate
-    assert (
-        (estimate.status is Status.UNAVAILABLE_OUTSIDE_SCOPE)
-        if value is TriState.YES
-        else (estimate.applicability == "APPLICABILITY_UNCERTAIN")
-    )
-
-
 def test_derived_pco2_never_enters_arterial_model():
-    req = eligible(ph=7.32, pco2=None, pco2_unit=None, hco3_mmol_l=27)
+    req = saturated_request(ph=7.32, pco2=None, pco2_unit=None, hco3_mmol_l=27)
     result = interpret_vbg(req)
     assert result.venous_gas.calculated_values["pco2"].status is Status.AVAILABLE
     assert result.arterial_paco2_estimate.status is Status.UNAVAILABLE_MISSING_INPUT
@@ -295,7 +209,7 @@ def test_partition_requires_same_timepoint(relation):
 
 
 def test_numerical_failure_keeps_independent_outputs():
-    result = interpret_vbg(replace(eligible(ph=400), current_chemistry=full_chemistry()))
+    result = interpret_vbg(replace(saturated_request(ph=400), current_chemistry=full_chemistry()))
     assert result.venous_gas.calculated_values["hco3"].status is Status.MODEL_DOMAIN_REFUSAL
     assert result.venous_gas.standard_base_excess.status is Status.MODEL_DOMAIN_REFUSAL
     assert result.arterial_paco2_estimate.status is Status.AVAILABLE
@@ -312,7 +226,7 @@ def test_chemistry_arithmetic_failure_does_not_destroy_gas():
 
 
 def test_nonpositive_interval_is_refused_without_clamping():
-    result = interpret_vbg(eligible(pco2=5))
+    result = interpret_vbg(saturated_request(pco2=5))
     assert result.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
     assert result.arterial_paco2_estimate.values == {}
 
@@ -324,16 +238,14 @@ def test_priority_order_and_no_chemistry_imputation():
     assert "anion gap" in result.highest_value_next_inputs[2]
     assert not any("requires" in line for line in result.unresolved_questions)
     result = interpret_vbg(
-        replace(
-            eligible(draw_site=DrawSite.FEMORAL), current_chemistry=CurrentChemistry(140, 105, 24)
-        )
+        replace(saturated_request(), current_chemistry=CurrentChemistry(140, 105, 24))
     )
     assert not any("saturation" in line for line in result.highest_value_next_inputs)
     assert any("Albumin" in line for line in result.highest_value_next_inputs)
 
 
 def test_serialization_and_exact_allowed_result_surface():
-    req = replace(eligible(ph=7.32), current_chemistry=full_chemistry())
+    req = replace(saturated_request(ph=7.32), current_chemistry=full_chemistry())
     result = interpret_vbg(req)
     assert to_json(result) == to_json(interpret_vbg(req))
     assert set(result.to_dict()) == {
@@ -344,6 +256,9 @@ def test_serialization_and_exact_allowed_result_surface():
         "chemistry",
         "screening",
         "arterial_paco2_estimate",
+        "arterial_ph_estimate",
+        "modeled_arterial_hco3",
+        "provisional_interpretation",
         "unresolved_questions",
         "highest_value_next_inputs",
         "methods",
@@ -354,13 +269,11 @@ def test_serialization_and_exact_allowed_result_surface():
         "point",
         "lower",
         "upper",
-        "oxygen_profile",
     }
     assert set(result.input_summary) == {
         "schema_version",
         "current_vbg",
         "current_chemistry",
-        "context",
     }
     assert len(result.highest_value_next_inputs) <= 3
 
@@ -387,13 +300,3 @@ def test_descriptive_reference_band_boundaries(ph, position):
 def test_hco3_provenance_is_retained_in_derived_sbe():
     result = interpret_vbg(request(ph=7.32, hco3_mmol_l=27, hco3_basis=Hco3Basis.UNKNOWN))
     assert result.venous_gas.standard_base_excess.input_origins["hco3_basis"] == "UNKNOWN"
-
-
-def test_applicability_does_not_override_known_blocker_and_invalid_unit_domain():
-    result = interpret_vbg(eligible(specimen_type=SpecimenType.UNKNOWN, draw_site=DrawSite.FEMORAL))
-    assert result.arterial_paco2_estimate.status is Status.UNAVAILABLE_OUTSIDE_SCOPE
-    result = interpret_vbg(
-        replace(eligible(pco2=1e308, pco2_unit=Pco2Unit.KPA), current_chemistry=full_chemistry())
-    )
-    assert result.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
-    assert result.chemistry["anion_gap"].status is Status.AVAILABLE
