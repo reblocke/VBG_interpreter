@@ -9,7 +9,7 @@ resolution-markers = [
 [manifest]
 build-constraints = [
     { name = "setuptools", specifier = "==84.0.0" },
-    { name = "wheel", specifier = "==0.47.0" },
+    { name = "wheel", specifier = "==0.48.0" },
 ]
 
 [[package]]
