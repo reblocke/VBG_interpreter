@@ -9,12 +9,23 @@ from enum import StrEnum
 from vbg_interpreter.serialization import to_primitive
 from vbg_interpreter.version import VERSION
 
-VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/4.0"
-VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/4.0"
+VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/5.0"
+VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/5.0"
 
 
 class ExplorerInputError(ValueError):
     """Raised when a typed explorer input is physically or structurally invalid."""
+
+
+class SampleType(StrEnum):
+    PERIPHERAL = "PERIPHERAL"
+    CENTRAL = "CENTRAL"
+    UNKNOWN = "UNKNOWN"
+
+
+class AlbuminUnit(StrEnum):
+    G_L = "g/L"
+    G_DL = "g/dL"
 
 
 class Pco2Unit(StrEnum):
@@ -49,6 +60,7 @@ class CalculationStatus(StrEnum):
     AVAILABLE = "AVAILABLE"
     UNAVAILABLE_MISSING_INPUT = "UNAVAILABLE_MISSING_INPUT"
     UNAVAILABLE_OUTSIDE_SCOPE = "UNAVAILABLE_OUTSIDE_SCOPE"
+    UNAVAILABLE_UNRELIABLE_INPUT = "UNAVAILABLE_UNRELIABLE_INPUT"
     MODEL_DOMAIN_REFUSAL = "MODEL_DOMAIN_REFUSAL"
 
 
@@ -112,6 +124,22 @@ class SaturationInput:
 
 
 @dataclass(frozen=True, slots=True)
+class AlbuminInput:
+    value: float
+    unit: AlbuminUnit
+    normalized_g_l: float | None = field(init=False)
+
+    def __post_init__(self) -> None:
+        _require_enum("albumin.unit", self.unit, AlbuminUnit)
+        value = _nonnegative("albumin.value", self.value)
+        normalized = value if self.unit is AlbuminUnit.G_L else value * 10
+        object.__setattr__(self, "value", value)
+        object.__setattr__(
+            self, "normalized_g_l", normalized if math.isfinite(normalized) else None
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class CurrentVbg:
     ph: float | None = None
     pco2: float | None = None
@@ -121,8 +149,10 @@ class CurrentVbg:
     base_excess_mmol_l: float | None = None
     base_excess_basis: BaseExcessBasis = BaseExcessBasis.UNKNOWN
     venous_o2_saturation: SaturationInput | None = None
+    sample_type: SampleType = SampleType.UNKNOWN
 
     def __post_init__(self) -> None:
+        _require_enum("sample_type", self.sample_type, SampleType)
         if self.ph is not None:
             object.__setattr__(self, "ph", _positive("current_vbg.ph", self.ph))
         if self.pco2 is None:
@@ -180,7 +210,7 @@ class CurrentChemistry:
     sodium_mmol_l: float | None = None
     chloride_mmol_l: float | None = None
     serum_total_co2_mmol_l: float | None = None
-    albumin_g_l: float | None = None
+    albumin: AlbuminInput | None = None
     lactate_mmol_l: float | None = None
     relationship_to_vbg: ChemistryTimeRelationship = ChemistryTimeRelationship.UNKNOWN
 
@@ -206,18 +236,18 @@ class CurrentChemistry:
         _require_enum(
             "chemistry.relationship_to_vbg", self.relationship_to_vbg, ChemistryTimeRelationship
         )
-        if self.albumin_g_l is not None:
-            object.__setattr__(
-                self,
-                "albumin_g_l",
-                _nonnegative("chemistry.albumin_g_l", self.albumin_g_l),
-            )
+        if self.albumin is not None and not isinstance(self.albumin, AlbuminInput):
+            raise ExplorerInputError("chemistry.albumin must be AlbuminInput.")
         if self.lactate_mmol_l is not None:
             object.__setattr__(
                 self,
                 "lactate_mmol_l",
                 _nonnegative("chemistry.lactate_mmol_l", self.lactate_mmol_l),
             )
+
+    @property
+    def albumin_g_l(self) -> float | None:
+        return None if self.albumin is None else self.albumin.normalized_g_l
 
     def to_dict(self) -> dict[str, object]:
         return _as_dict(self)
@@ -287,6 +317,10 @@ class VbgExplorerResult:
     unresolved_questions: tuple[str, ...]
     highest_value_next_inputs: tuple[str, ...]
     methods: dict[str, object]
+    input_observations: tuple[dict[str, object], ...]
+    physiology_direction: dict[str, object]
+    interpretation_sensitivity: dict[str, object]
+    narrative: dict[str, object]
     schema_version: str = field(default=VBG_EXPLORER_RESULT_SCHEMA_VERSION, init=False)
     software_version: str = field(default=VERSION, init=False)
 

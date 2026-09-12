@@ -1,9 +1,17 @@
 import { renderCoordinatePlots } from "./coordinate-plots.js";
-const SCHEMA = "vbg_explorer_result/4.0";
+import { formatNumber } from "./format.js";
+const SCHEMA = "vbg_explorer_result/5.0";
 const LABELS = {
   ph: "Venous pH",
+  gas_basis: "Gas bicarbonate basis",
+  timing: "Chemistry timing",
+  HH_FROM_MEASURED_PH_PVCO2: "HH from measured venous pH and PvCO₂",
+  SUPPLIED_BLOOD_GAS_HCO3_COMPLETED_PAIR:
+    "Supplied Blood gas HCO₃ in a completed venous pair",
+  SAME_CLINICAL_TIMEPOINT: "Same clinical timepoint",
+  DIFFERENT_TIMEPOINT: "Different timepoint",
   pco2: "PvCO₂",
-  hco3: "Blood-gas HCO₃",
+  hco3: "Blood gas HCO₃",
   base_excess: "Reported venous base excess",
   venous_saturation: "Venous O₂ saturation",
   sbe: "Venous standard base excess",
@@ -16,7 +24,12 @@ const LABELS = {
   venous_stewart_partition: "Venous Stewart partition",
   sodium_mmol_l: "Sodium",
   chloride_mmol_l: "Chloride",
-  serum_total_co2_mmol_l: "Serum total CO₂",
+  serum_total_co2_mmol_l: "BMP HCO₃",
+  albumin: "Albumin",
+  bmp_gas_bicarbonate_comparison: "BMP and gas bicarbonate comparison",
+  bmp_hco3: "BMP HCO₃",
+  gas_basis_hco3: "Gas-basis HCO₃",
+  bmp_minus_gas_hco3: "BMP minus gas HCO₃",
   albumin_g_l: "Albumin",
   lactate_mmol_l: "Lactate",
   total_sbe: "Total venous SBE",
@@ -45,15 +58,16 @@ function node(tag, text, className) {
   if (className) el.className = className;
   return el;
 }
-function number(value) {
-  return typeof value === "number"
-    ? value.toLocaleString("en-US", { maximumFractionDigits: 3 })
-    : String(value);
-}
+const number = formatNumber;
 function metric(parent, name, value, unit = "") {
   const el = node("div", undefined, "metric");
   if (name) el.append(node("strong", name));
-  el.append(node("span", `${number(value)} ${unit}`.trim()));
+  el.append(
+    node(
+      "span",
+      `${number(value, unit === "pH units" ? "ph" : "other")} ${unit}`.trim(),
+    ),
+  );
   parent.append(el);
 }
 function missingLabel(value) {
@@ -91,7 +105,9 @@ function renderCalculation(
     metric(
       parent,
       showTitle && visibleKeys.length === 1 ? null : label(key),
-      calculation.values[key],
+      ["gas_basis", "timing"].includes(key)
+        ? label(calculation.values[key])
+        : calculation.values[key],
       calculation.units[key] || "",
     );
   }
@@ -135,6 +151,8 @@ function resultObject(payload) {
 export function clearExplorerResult() {
   document.getElementById("results-panel").hidden = true;
   for (const id of [
+    "input-observations",
+    "narrative-content",
     "venous-content",
     "chemistry-content",
     "arterial-content",
@@ -151,8 +169,18 @@ export function clearExplorerResult() {
 export function renderExplorerResult(payload) {
   const result = resultObject(payload);
   clearExplorerResult();
+  const observations = document.getElementById("input-observations");
+  for (const observation of result.input_observations)
+    observations.append(node("p", observation.message, "warning"));
+  const narrative = document.getElementById("narrative-content");
+  narrative.append(
+    node("h3", "Best guess"),
+    node("p", result.narrative.best_guess),
+    node("h3", "Conditional physiology"),
+    node("p", result.narrative.conditional_physiology),
+  );
   const gas = document.getElementById("venous-content");
-  gas.append(node("h3", "What was measured or reported"));
+  gas.append(node("h3", "Measured / reported"));
   for (const key of [
     "ph",
     "pco2",
@@ -182,7 +210,7 @@ export function renderExplorerResult(payload) {
         "limitation",
       ),
     );
-  gas.append(node("h3", "What was calculated"));
+  gas.append(node("h3", "Calculated"));
   const gasCalculations = Object.entries(result.venous_gas.calculated_values);
   for (const [key, calc] of gasCalculations.filter(
     ([, c]) => c.status !== "UNAVAILABLE_MISSING_INPUT",
@@ -219,7 +247,7 @@ export function renderExplorerResult(payload) {
     "sodium_mmol_l",
     "chloride_mmol_l",
     "serum_total_co2_mmol_l",
-    "albumin_g_l",
+    "albumin",
     "lactate_mmol_l",
   ]) {
     const value = sourceChemistry[key];
@@ -227,9 +255,9 @@ export function renderExplorerResult(payload) {
     anyChemistry = true;
     metric(
       chemistry,
-      `Reported ${label(key).toLowerCase()}`,
-      value,
-      key === "albumin_g_l" ? "g/L" : "mmol/L",
+      `Reported ${label(key)}`,
+      key === "albumin" ? value.value : value,
+      key === "albumin" ? value.unit : "mmol/L",
     );
   }
   document.getElementById("chemistry-card").hidden = !anyChemistry;
@@ -270,7 +298,7 @@ export function renderExplorerResult(payload) {
     result.modeled_arterial_hco3,
   );
   const provisional = result.provisional_interpretation;
-  arterial.append(node("h3", "Provisional acid–base interpretation"));
+  arterial.append(node("h3", "Provisional gas-only interpretation"));
   if (provisional.status === "AVAILABLE") {
     const assessment = provisional.assessment;
     arterial.append(
@@ -287,12 +315,43 @@ export function renderExplorerResult(payload) {
         "p",
         provisional.status === "UNAVAILABLE_MISSING_INPUT"
           ? "Requires both measured pH and PvCO₂ for the estimated gas interpretation."
-          : "Interpretation unavailable outside the numerical domain.",
+          : provisional.status === "UNAVAILABLE_UNRELIABLE_INPUT"
+            ? "Interpretation withheld because a required gas coordinate has an input sanity warning. Finite arithmetic is retained above."
+            : `Interpretation unavailable: ${label(provisional.status)}.`,
         "limitation",
       ),
     );
   for (const text of provisional.limitations)
     arterial.append(node("p", text, "limitation"));
+  const sensitivity = result.interpretation_sensitivity;
+  arterial.append(
+    node("h3", "CO₂ scenario sensitivity"),
+    node("p", sensitivity.summary),
+  );
+  if (sensitivity.scenarios.length) {
+    const details = node("details");
+    details.append(node("summary", "Tested CO₂ scenarios"));
+    for (const scenario of sensitivity.scenarios) {
+      details.append(
+        node("h3", label(scenario.name)),
+        node(
+          "p",
+          `pH ${number(scenario.ph, "ph")}; CO₂ ${number(scenario.pco2)} mmHg; modeled HCO₃ ${number(scenario.hco3)} mmol/L.`,
+        ),
+        node(
+          "p",
+          scenario.assessment.primary_process_guess || label(scenario.status),
+        ),
+        node(
+          "p",
+          scenario.assessment.modeled_vs_expected || "Comparison unavailable.",
+        ),
+      );
+    }
+    for (const text of sensitivity.limitations)
+      details.append(node("p", text, "limitation"));
+    arterial.append(details);
+  }
   renderCoordinatePlots(result);
   for (const text of result.unresolved_questions)
     document.getElementById("uncertainty-content").append(node("li", text));
@@ -318,6 +377,7 @@ export function renderExplorerResult(payload) {
       .filter((c) => c.status !== "UNAVAILABLE_MISSING_INPUT")
       .map((c) => c.method_id),
   );
+  usedMethods.add(result.physiology_direction.model_id);
   if (result.venous_gas.consistency.status === "AVAILABLE")
     usedMethods.add(result.venous_gas.consistency.method_id);
   if (provisional.status !== "UNAVAILABLE_MISSING_INPUT")

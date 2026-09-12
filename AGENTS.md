@@ -24,7 +24,7 @@ browser workflow or copy an upstream formula already exposed by the pinned depen
 - Keep measured gas coordinates, HH-derived coordinates, calculated venous SBE, and modeled
   arterial values separate. Only measured source coordinates enter the fixed/Farkas estimates.
 - Saturation is same-sample by field definition. Do not restore the clinical-context questionnaire;
-  applicability remains explicitly unassessed. BE stays optional.
+  the only sample-context selector is Peripheral / Central / Unknown. Farkas requires explicit peripheral identity. Applicability remains explicitly unassessed. BE stays optional.
 - Coordinate plots display results only; their reference cross is not a diagnostic boundary.
 - Standard BE may be reported or calculated with the approved Van Slyke method at assumed 37°C;
   retain its provenance in venous Stewart output. Actual/unknown BE is not automatically SBE.

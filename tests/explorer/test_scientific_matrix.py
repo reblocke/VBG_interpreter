@@ -6,11 +6,14 @@ import pytest
 
 from vbg_interpreter import interpret_vbg
 from vbg_interpreter.models import (
+    AlbuminInput,
+    AlbuminUnit,
     BaseExcessBasis,
     CurrentChemistry,
     CurrentVbg,
     Hco3Basis,
     Pco2Unit,
+    SampleType,
     SaturationInput,
     SaturationUnit,
     VbgExplorerRequest,
@@ -33,6 +36,7 @@ def request(**gas):
 
 def saturated_request(**changes):
     gas = CurrentVbg(
+        sample_type=SampleType.PERIPHERAL,
         pco2=55,
         pco2_unit=Pco2Unit.MMHG,
         venous_o2_saturation=SaturationInput(75, SaturationUnit.PERCENTAGE_POINTS),
@@ -41,7 +45,12 @@ def saturated_request(**changes):
 
 
 def full_chemistry(**changes):
-    return replace(CurrentChemistry(140, 105, 24, 40, 2, Time.SAME_CLINICAL_TIMEPOINT), **changes)
+    return replace(
+        CurrentChemistry(
+            140, 105, 24, AlbuminInput(40, AlbuminUnit.G_L), 2, Time.SAME_CLINICAL_TIMEPOINT
+        ),
+        **changes,
+    )
 
 
 @pytest.mark.parametrize(
@@ -147,7 +156,7 @@ def test_derived_pco2_never_enters_arterial_model():
         (CurrentChemistry(140, 105), {"sodium_chloride_difference": 35}),
         (CurrentChemistry(140, 105, 24), {"anion_gap": 11, "sodium_chloride_difference": 35}),
         (
-            CurrentChemistry(140, 105, 24, 20),
+            CurrentChemistry(140, 105, 24, AlbuminInput(20, AlbuminUnit.G_L)),
             {"anion_gap": 11, "corrected_anion_gap": 16, "sodium_chloride_difference": 35},
         ),
     ],
@@ -233,9 +242,9 @@ def test_nonpositive_interval_is_refused_without_clamping():
 
 def test_priority_order_and_no_chemistry_imputation():
     result = interpret_vbg(request(pco2=55))
-    assert "saturation" in result.highest_value_next_inputs[0]
-    assert "venous pH" in result.highest_value_next_inputs[1]
-    assert "anion gap" in result.highest_value_next_inputs[2]
+    assert "venous pH" in result.highest_value_next_inputs[0]
+    assert "anion gap" in result.highest_value_next_inputs[1]
+    assert not any("saturation" in x for x in result.highest_value_next_inputs)
     assert not any("requires" in line for line in result.unresolved_questions)
     result = interpret_vbg(
         replace(saturated_request(), current_chemistry=CurrentChemistry(140, 105, 24))
@@ -262,6 +271,10 @@ def test_serialization_and_exact_allowed_result_surface():
         "unresolved_questions",
         "highest_value_next_inputs",
         "methods",
+        "input_observations",
+        "physiology_direction",
+        "interpretation_sensitivity",
+        "narrative",
     }
     assert set(result.arterial_paco2_estimate.values) == {
         "measured_pvco2",

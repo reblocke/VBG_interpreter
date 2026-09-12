@@ -1,0 +1,602 @@
+{
+  "arterial_paco2_estimate": {
+    "applicability": "APPLICABILITY_UNASSESSED",
+    "evidence_tier": "EXTERNALLY_EVALUATED",
+    "input_origins": {
+      "pco2": "MEASURED_OR_REPORTED_VENOUS",
+      "sample_type": "PERIPHERAL",
+      "venous_saturation": "REPORTED_SAME_SAMPLE_VENOUS"
+    },
+    "limitations": [
+      "Applicability is unassessed. Venous–arterial differences vary with sampling, perfusion and clinical state; these estimates do not establish arterial measurements.",
+      "Farkas PaCO2 component externally evaluated in peripheral samples; this combined pH/CO2 interpretation is not externally validated.",
+      "Conservative published oxygen-profile agreement range; not a patient-specific confidence interval or joint pH/CO2 region."
+    ],
+    "method_id": "farkas_simplified_93_v1",
+    "missing_inputs": [],
+    "output_provenance": "MODEL_BASED_ARTERIAL_ESTIMATE",
+    "status": "AVAILABLE",
+    "units": {
+      "lower": "mmHg",
+      "measured_pvco2": "mmHg",
+      "point": "mmHg",
+      "saturation_percent": "%",
+      "upper": "mmHg"
+    },
+    "values": {
+      "lower": 41.84,
+      "measured_pvco2": 55.0,
+      "point": 51.04,
+      "saturation_percent": 75.0,
+      "upper": 59.78
+    }
+  },
+  "arterial_ph_estimate": {
+    "applicability": "APPLICABILITY_UNASSESSED",
+    "evidence_tier": "OWNER_SELECTED_HEURISTIC",
+    "input_origins": {
+      "ph": "MEASURED_OR_REPORTED_VENOUS"
+    },
+    "limitations": [
+      "Rough fixed pH correction (+0.04); no individual uncertainty interval."
+    ],
+    "method_id": "fixed_ph_offset_v1",
+    "missing_inputs": [],
+    "output_provenance": "HEURISTIC_ARTERIAL_ESTIMATE",
+    "status": "AVAILABLE",
+    "units": {
+      "ph": "pH units"
+    },
+    "values": {
+      "ph": 7.36
+    }
+  },
+  "chemistry": {
+    "anion_gap": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "serum total CO2": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "Serum total CO2 is distinct from blood-gas HCO3; reference intervals are laboratory-dependent."
+      ],
+      "method_id": "serum_anion_gap_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "anion_gap": "mmol/L"
+      },
+      "values": {
+        "anion_gap": 11.0
+      }
+    },
+    "bmp_gas_bicarbonate_comparison": {
+      "applicability": null,
+      "evidence_tier": "DESCRIPTIVE_COMPARISON",
+      "input_origins": {
+        "bmp_hco3": "REPORTED_CHEMISTRY",
+        "gas_basis": "HH_FROM_MEASURED_PH_PVCO2"
+      },
+      "limitations": [
+        "BMP HCO3 is chemistry total CO2, distinct from gas bicarbonate. Timing, method and preanalytic differences can contribute; the gas-only interpretation does not reconcile chemistry."
+      ],
+      "method_id": "bmp_gas_hco3_difference_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "bmp_hco3": "mmol/L",
+        "bmp_minus_gas_hco3": "mmol/L",
+        "gas_basis_hco3": "mmol/L"
+      },
+      "values": {
+        "bmp_hco3": 24.0,
+        "bmp_minus_gas_hco3": -4.34660584599947,
+        "gas_basis": "HH_FROM_MEASURED_PH_PVCO2",
+        "gas_basis_hco3": 28.34660584599947,
+        "timing": "SAME_CLINICAL_TIMEPOINT"
+      }
+    },
+    "corrected_anion_gap": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "albumin": "MEASURED_OR_REPORTED_SERUM",
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "serum total CO2": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "No universal high/normal/low AG cutoff is applied."
+      ],
+      "method_id": "albumin_corrected_anion_gap_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "corrected_anion_gap": "mmol/L"
+      },
+      "values": {
+        "corrected_anion_gap": 11.0
+      }
+    },
+    "sodium_chloride_difference": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "Descriptive strong-ion surrogate; not a complete metabolic interpretation."
+      ],
+      "method_id": "sodium_chloride_difference_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "sodium_chloride_difference": "mmol/L"
+      },
+      "values": {
+        "sodium_chloride_difference": 35.0
+      }
+    },
+    "venous_stewart_partition": {
+      "applicability": null,
+      "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+      "input_origins": {
+        "albumin": "MEASURED_OR_REPORTED",
+        "chloride": "MEASURED_OR_REPORTED",
+        "lactate": "MEASURED_OR_REPORTED_SERUM",
+        "measured venous pH": "MEASURED_OR_REPORTED",
+        "sbe": "CALCULATED_VAN_SLYKE",
+        "sbe.hco3": "CALCULATED_HENDERSON_HASSELBALCH",
+        "sbe.pco2": "MEASURED_OR_REPORTED",
+        "sbe.ph": "MEASURED_OR_REPORTED",
+        "sodium": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Venous-basis partition of reported or calculated SBE; not arterial SBE.",
+        "Calculated venous-basis SBE; normothermia (37°C) assumed.",
+        "Standardized effective hemoglobin 5 g/dL; no analyzer-equivalence claim."
+      ],
+      "method_id": "stewartlight_venous_partition_v1",
+      "missing_inputs": [],
+      "output_provenance": "VENOUS_BASIS_PARTITION",
+      "status": "AVAILABLE",
+      "units": {
+        "albumin_component": "mmol/L",
+        "closure_error": "mmol/L",
+        "lactate_component": "mmol/L",
+        "nonlactate_unmeasured_component": "mmol/L",
+        "reconstructed_sbe": "mmol/L",
+        "sodium_chloride_component": "mmol/L",
+        "total_sbe": "mmol/L",
+        "unmeasured_ions_component": "mmol/L"
+      },
+      "values": {
+        "albumin_component": 0.0,
+        "closure_error": 0.0,
+        "lactate_component": -2.0,
+        "nonlactate_unmeasured_component": 4.563403169179708,
+        "reconstructed_sbe": 2.563403169179708,
+        "sodium_chloride_component": 0.0,
+        "total_sbe": 2.563403169179708,
+        "unmeasured_ions_component": 2.563403169179708
+      }
+    }
+  },
+  "highest_value_next_inputs": [
+    "If arterial pH or directly measured PaCO2 is the question, an arterial blood gas provides those measurements; venous data do not establish them."
+  ],
+  "input_observations": [],
+  "input_summary": {
+    "current_chemistry": {
+      "albumin": {
+        "normalized_g_l": 40.0,
+        "unit": "g/L",
+        "value": 40.0
+      },
+      "chloride_mmol_l": 105.0,
+      "lactate_mmol_l": 2.0,
+      "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT",
+      "serum_total_co2_mmol_l": 24.0,
+      "sodium_mmol_l": 140.0
+    },
+    "current_vbg": {
+      "base_excess_basis": "UNKNOWN",
+      "base_excess_mmol_l": null,
+      "hco3_basis": "UNKNOWN",
+      "hco3_mmol_l": null,
+      "pco2": 55.0,
+      "pco2_unit": "mmHg",
+      "ph": 7.32,
+      "sample_type": "PERIPHERAL",
+      "venous_o2_saturation": {
+        "normalized_percentage_points": 75.0,
+        "unit": "PERCENTAGE_POINTS",
+        "value": 75.0
+      }
+    },
+    "schema_version": "vbg_explorer_request/5.0"
+  },
+  "interpretation_sensitivity": {
+    "limitations": [
+      "Lower, point and upper CO2 examples hold estimated pH fixed and recompute HH bicarbonate at each point.",
+      "These scenarios are not exhaustive and have no probability meaning."
+    ],
+    "scenarios": [
+      {
+        "assessment": {
+          "acid_base_state": "near-normal pH",
+          "compensation_category": "NOT_APPLIED",
+          "expected_compensation": {
+            "not_applied": "No single dominant Boston process was selected because pH is near-normal or the directions of PaCO2 and HCO3 are ambiguous."
+          },
+          "mixed_disorder_flag": false,
+          "modeled_vs_expected": "Near-normal pH does not exclude compensated or mixed acid-base processes.",
+          "notes": [
+            "Boston compensation rules are most useful after choosing a likely primary process."
+          ],
+          "primary_category": "no clear primary process by simple Boston heuristics",
+          "primary_process_guess": "no clear primary process by simple Boston heuristics",
+          "scenario_example": "not applied"
+        },
+        "hco3": 23.64449546622859,
+        "name": "lower",
+        "pco2": 41.84,
+        "ph": 7.36,
+        "status": "AVAILABLE"
+      },
+      {
+        "assessment": {
+          "acid_base_state": "near-normal pH",
+          "compensation_category": "WITHIN",
+          "expected_compensation": {
+            "acute_hco3_mmol_l": 25.104,
+            "chronic_hco3_mmol_l": 28.416,
+            "process": "respiratory acidosis"
+          },
+          "mixed_disorder_flag": false,
+          "modeled_vs_expected": "modeled HCO3 is within the broad acute/chronic expected range (28.8 vs 25.1/28.4)",
+          "notes": [
+            "A single blood gas may not distinguish acute from chronic respiratory acidosis."
+          ],
+          "primary_category": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+          "primary_process_guess": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+          "scenario_example": "within"
+        },
+        "hco3": 28.843571907177516,
+        "name": "point",
+        "pco2": 51.04,
+        "ph": 7.36,
+        "status": "AVAILABLE"
+      },
+      {
+        "assessment": {
+          "acid_base_state": "near-normal pH",
+          "compensation_category": "WITHIN",
+          "expected_compensation": {
+            "acute_hco3_mmol_l": 25.978,
+            "chronic_hco3_mmol_l": 31.912,
+            "process": "respiratory acidosis"
+          },
+          "mixed_disorder_flag": false,
+          "modeled_vs_expected": "modeled HCO3 is within the broad acute/chronic expected range (33.8 vs 26.0/31.9)",
+          "notes": [
+            "A single blood gas may not distinguish acute from chronic respiratory acidosis."
+          ],
+          "primary_category": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+          "primary_process_guess": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+          "scenario_example": "within"
+        },
+        "hco3": 33.782694526079,
+        "name": "upper",
+        "pco2": 59.78,
+        "ph": 7.36,
+        "status": "AVAILABLE"
+      }
+    ],
+    "status": "CHANGES",
+    "summary": "The provisional interpretation changes across the tested CO2 scenarios; the point estimate is not robust to this CO2 variation. Tested compensation examples: not applied; within. Tested primary-process examples: no clear primary process by simple Boston heuristics; near-normal pH with compensated respiratory acidosis or mixed process possible."
+  },
+  "methods": {
+    "albumin_corrected_anion_gap_v1": {
+      "description": "AG + 0.25 × (40 − albumin g/L).",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "bmp_gas_hco3_difference_v1": {
+      "description": "BMP HCO3 minus venous gas-basis HCO3; absolute difference >10 mmol/L is a warning heuristic.",
+      "evidence_tier": "DESCRIPTIVE_COMPARISON",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "boston_estimated_gas_v1": {
+      "description": "Provisional Boston compensation assessment of the estimated arterial gas; chronicity unestablished.",
+      "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+      "sources": [
+        "https://github.com/reblocke/stewart-light/tree/f277cac54801d85366cbadbf11804f6643f6a869"
+      ]
+    },
+    "farkas_simplified_93_v1": {
+      "description": "Estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample saturation%).",
+      "evidence_tier": "EXTERNALLY_EVALUATED",
+      "sources": [
+        "https://doi.org/10.1186/s40635-023-00564-w"
+      ]
+    },
+    "fixed_paco2_offset_v1": {
+      "description": "Estimated PaCO2 = measured PvCO2(mmHg) − 5; rough fixed correction.",
+      "evidence_tier": "OWNER_SELECTED_HEURISTIC",
+      "sources": [
+        "docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"
+      ]
+    },
+    "fixed_ph_offset_v1": {
+      "description": "Estimated arterial pH = measured venous pH + 0.04; rough fixed correction.",
+      "evidence_tier": "OWNER_SELECTED_HEURISTIC",
+      "sources": [
+        "docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"
+      ]
+    },
+    "henderson_hasselbalch_v1": {
+      "description": "Venous gas completion: HCO3 = 0.0307 × PvCO2 × 10^(pH − 6.095).",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#venous-gas-and-standard-base-excess"
+      ]
+    },
+    "modeled_arterial_hh_v1": {
+      "description": "Modeled arterial HCO3 = 0.0307 × estimated PaCO2 × 10^(estimated pH − 6.095).",
+      "evidence_tier": "DERIVED_FROM_ESTIMATES",
+      "sources": [
+        "docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"
+      ]
+    },
+    "reported_venous_sbe_v1": {
+      "description": "Reported venous standard base excess; analyzer method unspecified.",
+      "evidence_tier": "MEASURED_OR_REPORTED",
+      "sources": []
+    },
+    "serum_anion_gap_v1": {
+      "description": "Na − Cl − serum total CO2.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "sodium_chloride_difference_v1": {
+      "description": "Na − Cl; descriptive strong-ion surrogate.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "stewartlight_venous_partition_v1": {
+      "description": "Venous-basis partition through the pinned structured Stewart Light helper.",
+      "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+      "sources": [
+        "https://github.com/reblocke/stewart-light/tree/f277cac54801d85366cbadbf11804f6643f6a869"
+      ]
+    },
+    "usual_tissue_transit_direction_v1": {
+      "description": "Under usual tissue transit: pHa ≥ pHv and 0 < PaCO2 ≤ PvCO2; applicability unassessed.",
+      "evidence_tier": "CONDITIONAL_PHYSIOLOGY_MODEL",
+      "sources": [
+        "docs/EVIDENCE.md#conditional-physiology"
+      ]
+    },
+    "venous_sbe_van_slyke_37c_v1": {
+      "description": "Venous SBE = 0.9287 × [HCO3 − 24.4 + 14.83 × (pH − 7.4)]; 37°C assumed.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "https://doi.org/10.1097/00003246-199807000-00015"
+      ]
+    }
+  },
+  "modeled_arterial_hco3": {
+    "applicability": null,
+    "evidence_tier": "DERIVED_FROM_ESTIMATES",
+    "input_origins": {
+      "pco2": "MODEL_BASED_ARTERIAL_ESTIMATE",
+      "ph": "HEURISTIC_ARTERIAL_ESTIMATE"
+    },
+    "limitations": [
+      "Modeled arterial bicarbonate from the estimated pair; not measured or venous bicarbonate."
+    ],
+    "method_id": "modeled_arterial_hh_v1",
+    "missing_inputs": [],
+    "output_provenance": "CALCULATED_FROM_ARTERIAL_ESTIMATES",
+    "status": "AVAILABLE",
+    "units": {
+      "modeled_hco3": "mmol/L"
+    },
+    "values": {
+      "modeled_hco3": 28.843571907177516
+    }
+  },
+  "narrative": {
+    "best_guess": "The best-guess conversion shows estimated arterial pH 7.36 (fixed +0.04). Estimated PaCO2 51.0 mmHg (peripheral Farkas; sample peripheral). Provisional gas-only interpretation: near-normal pH with compensated respiratory acidosis or mixed process possible. Modeled HCO3 is within the broad acute/chronic expected range (28.8 vs 25.1/28.4). The provisional interpretation changes across the tested CO2 scenarios; the point estimate is not robust to this CO2 variation. Tested compensation examples: not applied; within. Tested primary-process examples: no clear primary process by simple Boston heuristics; near-normal pH with compensated respiratory acidosis or mixed process possible. Applicability is unassessed; clinical context and pH uncertainty remain unresolved. The CO2 agreement range extends outside the conditional physiology shading. The empirical estimate and conditional physiology model differ; values and ranges are retained without clipping. The gas-only interpretation does not reconcile serum chemistry. BMP HCO3 24.0 versus gas-basis HCO3 28.3 mmol/L; BMP minus gas -4.3 mmol/L; timing same clinical timepoint.",
+    "conditional_physiology": "Based on physiology, assuming usual steady-state tissue transit with net CO2 addition and acidification, arterial pH is at least venous pH and arterial CO2 is no greater than venous CO2. Sampling, local metabolism, perfusion and nonsteady state can invalidate this model. Conditional arterial pH ≥ 7.32: acidemia, near-normal pH, alkalemia remain possible; no upper pH bound is identified. Conditional 0 < PaCO2 ≤ 55.0 mmHg: below 40 mmHg, equal to 40 mmHg, above 40 mmHg remain possible relative to the plotting reference. No positive minimum CO2 is identified. These are coordinate possibilities, not exclusions of metabolic or respiratory components, mixed disorders, or chronicity.",
+    "model_disagreements": [
+      "The CO2 agreement range extends outside the conditional physiology shading."
+    ]
+  },
+  "physiology_direction": {
+    "assumption": "Based on physiology, assuming usual steady-state tissue transit with net CO2 addition and acidification, arterial pH is at least venous pH and arterial CO2 is no greater than venous CO2. Sampling, local metabolism, perfusion and nonsteady state can invalidate this model.",
+    "axes": {
+      "pco2": {
+        "bound": 55.0,
+        "display_bound": "55.0",
+        "possibilities": [
+          "below 40 mmHg",
+          "equal to 40 mmHg",
+          "above 40 mmHg"
+        ],
+        "relation": "0 < arterial CO2 <=",
+        "status": "AVAILABLE"
+      },
+      "ph": {
+        "bound": 7.32,
+        "display_bound": "7.32",
+        "possibilities": [
+          "acidemia",
+          "near-normal pH",
+          "alkalemia"
+        ],
+        "relation": ">=",
+        "status": "AVAILABLE"
+      }
+    },
+    "caption": "Conditional arterial direction under usual tissue transit; not a confidence region or guaranteed ABG bound. Sample: peripheral.",
+    "limitations": [
+      "Unshaded space is not clinically ruled out.",
+      "The reference cross is not a diagnostic boundary.",
+      "Marginal directions do not establish joint attainability or likelihood. Non-acidemic pH does not exclude metabolic acidosis; CO2 below 40 does not exclude relative respiratory acidosis."
+    ],
+    "model_id": "usual_tissue_transit_direction_v1",
+    "sample_type": "PERIPHERAL",
+    "status": "AVAILABLE",
+    "summary": "Conditional arterial pH ≥ 7.32: acidemia, near-normal pH, alkalemia remain possible; no upper pH bound is identified. Conditional 0 < PaCO2 ≤ 55.0 mmHg: below 40 mmHg, equal to 40 mmHg, above 40 mmHg remain possible relative to the plotting reference. No positive minimum CO2 is identified. These are coordinate possibilities, not exclusions of metabolic or respiratory components, mixed disorders, or chronicity."
+  },
+  "provisional_interpretation": {
+    "assessment": {
+      "acid_base_state": "near-normal pH",
+      "compensation_category": "WITHIN",
+      "expected_compensation": {
+        "acute_hco3_mmol_l": 25.104,
+        "chronic_hco3_mmol_l": 28.416,
+        "process": "respiratory acidosis"
+      },
+      "mixed_disorder_flag": false,
+      "modeled_vs_expected": "modeled HCO3 is within the broad acute/chronic expected range (28.8 vs 25.1/28.4)",
+      "notes": [
+        "A single blood gas may not distinguish acute from chronic respiratory acidosis."
+      ],
+      "primary_category": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+      "primary_process_guess": "near-normal pH with compensated respiratory acidosis or mixed process possible",
+      "scenario_example": "within"
+    },
+    "limitations": [
+      "Provisional interpretation of estimated coordinates; other acid–base processes are not excluded.",
+      "A single gas does not establish chronicity; acute and chronic comparisons are contextual only."
+    ],
+    "method_id": "boston_estimated_gas_v1",
+    "missing_inputs": [],
+    "output_provenance": "PROVISIONAL_ESTIMATED_GAS_INTERPRETATION",
+    "status": "AVAILABLE"
+  },
+  "schema_version": "vbg_explorer_result/5.0",
+  "screening": {
+    "evidence_tier": "NOT_CONFIGURED",
+    "input_origins": {},
+    "limitations": [
+      "No owner-approved PvCO2 screening threshold is configured."
+    ],
+    "method_id": null,
+    "output_provenance": "NONE",
+    "status": "NOT_CONFIGURED",
+    "units": {},
+    "values": {}
+  },
+  "software_version": "0.5.0",
+  "unresolved_questions": [
+    "Arterial pH, arterial oxygenation, and a complete arterial acid–base interpretation are not established."
+  ],
+  "venous_gas": {
+    "calculated_values": {
+      "hco3": {
+        "applicability": null,
+        "evidence_tier": "DERIVED_CALCULATION",
+        "input_origins": {
+          "pco2": "MEASURED_OR_REPORTED",
+          "ph": "MEASURED_OR_REPORTED"
+        },
+        "limitations": [
+          "Algebraic venous coordinate; not an independent measurement."
+        ],
+        "method_id": "henderson_hasselbalch_v1",
+        "missing_inputs": [],
+        "output_provenance": "CALCULATED_HENDERSON_HASSELBALCH",
+        "status": "AVAILABLE",
+        "units": {
+          "hco3": "mmol/L"
+        },
+        "values": {
+          "hco3": 28.34660584599947
+        }
+      }
+    },
+    "consistency": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "pco2": "MEASURED_OR_REPORTED",
+        "ph": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Numerical comparison only; discrepancy is not a clinical disorder."
+      ],
+      "method_id": "henderson_hasselbalch_v1",
+      "missing_inputs": [
+        "hco3"
+      ],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "UNAVAILABLE_MISSING_INPUT",
+      "units": {},
+      "values": {}
+    },
+    "measured_values": {
+      "pco2": {
+        "basis": "MEASURED_OR_REPORTED",
+        "normalized_mmhg": 55.0,
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "mmHg",
+        "value": 55.0
+      },
+      "ph": {
+        "basis": "MEASURED_OR_REPORTED",
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "pH units",
+        "value": 7.32
+      },
+      "venous_saturation": {
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "PERCENTAGE_POINTS",
+        "value": 75.0
+      }
+    },
+    "ph_reference_position": "below",
+    "standard_base_excess": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "hco3": "CALCULATED_HENDERSON_HASSELBALCH",
+        "pco2": "MEASURED_OR_REPORTED",
+        "ph": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Calculated venous-basis SBE; normothermia (37°C) assumed.",
+        "Standardized effective hemoglobin 5 g/dL; no analyzer-equivalence claim."
+      ],
+      "method_id": "venous_sbe_van_slyke_37c_v1",
+      "missing_inputs": [],
+      "output_provenance": "CALCULATED_VAN_SLYKE",
+      "status": "AVAILABLE",
+      "units": {
+        "sbe": "mmol/L"
+      },
+      "values": {
+        "sbe": 2.563403169179708
+      }
+    }
+  }
+}

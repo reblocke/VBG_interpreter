@@ -14,6 +14,7 @@ from vbg_interpreter.models import (
     BaseExcessBasis,
     CurrentVbg,
     Pco2Unit,
+    SampleType,
     SaturationInput,
     SaturationUnit,
     VbgExplorerRequest,
@@ -25,6 +26,7 @@ from vbg_interpreter.serialization import ExplorerSerializationError
 
 
 def gas_result(ph=7.32, pco2=55, **changes):
+    changes.setdefault("sample_type", SampleType.PERIPHERAL)
     return interpret_vbg(
         VbgExplorerRequest(
             CurrentVbg(
@@ -104,7 +106,9 @@ def test_invalid_fixed_estimate_is_local_refusal_not_clamped(pco2):
     assert r.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
     assert r.arterial_paco2_estimate.values == {}
     assert r.arterial_ph_estimate.values == {"ph": 7.36}
-    assert r.provisional_interpretation.status is Status.MODEL_DOMAIN_REFUSAL
+    assert r.provisional_interpretation.status is (
+        Status.UNAVAILABLE_UNRELIABLE_INPUT if r.input_observations else Status.MODEL_DOMAIN_REFUSAL
+    )
 
 
 def test_invalid_farkas_range_never_silently_falls_back_to_fixed():
@@ -118,7 +122,9 @@ def test_invalid_farkas_range_never_silently_falls_back_to_fixed():
 def test_modeled_hco3_overflow_keeps_ph_and_co2_estimates():
     r = gas_result(ph=400)
     assert r.modeled_arterial_hco3.status is Status.MODEL_DOMAIN_REFUSAL
-    assert r.provisional_interpretation.status is Status.MODEL_DOMAIN_REFUSAL
+    assert r.provisional_interpretation.status is (
+        Status.UNAVAILABLE_UNRELIABLE_INPUT if r.input_observations else Status.MODEL_DOMAIN_REFUSAL
+    )
     assert r.arterial_ph_estimate.status is Status.AVAILABLE
     assert r.arterial_paco2_estimate.status is Status.AVAILABLE
 
@@ -167,7 +173,7 @@ def test_renderable_interpretation_never_calls_estimated_operands_measured(ph, p
 
 
 @pytest.mark.parametrize("field", ["specimen_type", "draw_site", "saturation_same_sample"])
-def test_removed_questionnaire_fields_are_rejected_in_v4(field):
+def test_removed_questionnaire_fields_are_rejected_in_v5(field):
     data = wire_request()
     data["current_vbg"][field] = "UNKNOWN"
     with pytest.raises(ExplorerSerializationError):

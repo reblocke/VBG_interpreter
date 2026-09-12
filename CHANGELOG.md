@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.0] - 2026-09-12
+
+- Add conditional physiology narrative and directional shading from usable measured axes.
+- Restrict saturation-based Farkas to explicit peripheral samples; retain fixed estimates for central/unknown.
+- Add CO2 scenario sensitivity, explicit BMP–gas bicarbonate discrepancy, albumin units, and warning-only input sanity.
+- Propagate every dependency failure before reading calculation values; retain independent partial results.
+- Advance strict request/result schemas to v5 with no compatibility shims.
+
+
 ## [0.4.0] - 2026-09-12
 
 - Add rough arterial pH/CO2 estimates from measured venous inputs; optional same-sample saturation switches CO2 to Farkas automatically.

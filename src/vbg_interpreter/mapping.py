@@ -1,4 +1,4 @@
-"""Strict mapping boundary for ``vbg_explorer_request/4.0``."""
+"""Strict mapping boundary for ``vbg_explorer_request/5.0``."""
 
 from __future__ import annotations
 
@@ -10,12 +10,15 @@ from enum import StrEnum
 
 from vbg_interpreter.models import (
     VBG_EXPLORER_REQUEST_SCHEMA_VERSION,
+    AlbuminInput,
+    AlbuminUnit,
     BaseExcessBasis,
     ChemistryTimeRelationship,
     CurrentChemistry,
     CurrentVbg,
     Hco3Basis,
     Pco2Unit,
+    SampleType,
     SaturationInput,
     SaturationUnit,
     VbgExplorerRequest,
@@ -38,6 +41,7 @@ _CURRENT_VBG_KEYS = frozenset(
         "base_excess_mmol_l",
         "base_excess_basis",
         "venous_o2_saturation",
+        "sample_type",
     }
 )
 _CHEMISTRY_KEYS = frozenset(
@@ -45,7 +49,7 @@ _CHEMISTRY_KEYS = frozenset(
         "sodium_mmol_l",
         "chloride_mmol_l",
         "serum_total_co2_mmol_l",
-        "albumin_g_l",
+        "albumin",
         "lactate_mmol_l",
         "relationship_to_vbg",
     }
@@ -65,7 +69,7 @@ def request_from_mapping(payload: Mapping[str, object]) -> VbgExplorerRequest:
     root = require_exact_keys(payload, _ROOT_KEYS, path="request")
     if root["schema_version"] != VBG_EXPLORER_REQUEST_SCHEMA_VERSION:
         raise ExplorerSerializationError(
-            "schema_version must be vbg_explorer_request/4.0; no legacy migration is available."
+            "schema_version must be vbg_explorer_request/5.0; no legacy migration is available."
         )
     return VbgExplorerRequest(
         current_vbg=_current_vbg(root["current_vbg"]),
@@ -87,6 +91,7 @@ def _current_vbg(value: object) -> CurrentVbg:
         ),
         base_excess_basis=_enum(BaseExcessBasis, data["base_excess_basis"], "base_excess_basis"),
         venous_o2_saturation=None if saturation is None else _saturation(saturation),
+        sample_type=_enum(SampleType, data["sample_type"], "current_vbg.sample_type"),
     )
 
 
@@ -100,13 +105,20 @@ def _chemistry(value: object) -> CurrentChemistry:
         serum_total_co2_mmol_l=_optional_number(
             data["serum_total_co2_mmol_l"], "current_chemistry.serum_total_co2_mmol_l"
         ),
-        albumin_g_l=_optional_number(data["albumin_g_l"], "current_chemistry.albumin_g_l"),
+        albumin=None if data["albumin"] is None else _albumin(data["albumin"]),
         lactate_mmol_l=_optional_number(data["lactate_mmol_l"], "current_chemistry.lactate_mmol_l"),
         relationship_to_vbg=_enum(
             ChemistryTimeRelationship,
             data["relationship_to_vbg"],
             "current_chemistry.relationship_to_vbg",
         ),
+    )
+
+
+def _albumin(value: object) -> AlbuminInput:
+    data = _object(value, frozenset({"value", "unit"}), "current_chemistry.albumin")
+    return AlbuminInput(
+        _number(data["value"], "albumin.value"), _enum(AlbuminUnit, data["unit"], "albumin.unit")
     )
 
 
