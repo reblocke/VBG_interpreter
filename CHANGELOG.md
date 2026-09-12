@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-09-12
+
+- Accept any one current VBG value; keep all CMP/BMP fields optional and calculations independent.
+- Replace broad v2 contracts with provenance-bearing capability results in schema 3.0.
+- Remove generic arterial rectangles and Boston state-space inference from the live package.
+- Require measured PvCO2 and explicit same-sample saturation for the PaCO2 component; enforce
+  upper-extremity peripheral scope and distinguish unknown applicability from known blockers.
+- Add Na−Cl and calculated venous SBE using the owner-selected Van Slyke equation at assumed
+  37°C. Allow derived SBE into an otherwise eligible, explicitly venous Stewart partition.
+- Replace HCO3 discordance warnings with a neutral numerical difference. Leave screening
+  NOT_CONFIGURED pending a separately approved threshold.
+- Defer prior-observation and longitudinal context, rather than disproving their potential value.
+- Simplify to one form and five result cards; retain static privacy and self-hosted Pyodide.
+- Preserve the public-main/private-archive history boundary and exact source/Pages binding.
+
 ## [0.2.0] - 2026-08-04
 
 Second public research preview, published from the history-free repository and deployed from the

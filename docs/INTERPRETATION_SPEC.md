@@ -1,110 +1,68 @@
 # Interpretation specification
 
-## One result contract
+## Request 3.0
 
-The only live request schema is `vbg_explorer_request/2.0`; the only live result schema is
-`vbg_explorer_result/2.0`. There is no migration or fallback behavior for superseded pre-release
-schemas.
+`interpret_vbg(VbgExplorerRequest(...))` is the single Python entry point. Typed inputs live in
+`vbg_interpreter.models`; `request_from_mapping` and `request_from_json` accept the strict wire
+contract. The root has exactly `schema_version`, `current_vbg`, `current_chemistry`, and `context`.
+All declared wire fields are present; absent measurements are null and unknown context is
+explicit. Numeric wire inputs are finite decimal strings, never JSON numbers or guessed units.
+Extra/duplicate fields and obsolete versions are rejected without migration.
 
-The public Python entry point is `vbg_interpreter.interpret_vbg(request)`. The browser calls the
-same contract through `vbg_interpreter.browser_adapter.interpret_browser_request_json`.
-Every result's provenance includes the producing Explorer software version. A deployed static
-bundle additionally publishes its exact Git commit in `release-manifest.json`.
+At least one current VBG value is required, including base excess or saturation. Context alone
+and chemistry alone cannot submit. Gas pH, PCO2, and HCO3 must be positive; SBE may be signed.
+Explicit saturation units distinguish percentage points from fractions. HCO3 provenance may
+be reported, calculated, or unknown. BE basis may be standard, actual, or unknown.
+Same-sample confirmation is YES/NO/UNKNOWN and is sent only when saturation is present.
 
-## Progressive input completion and model selection
+## Result 3.0
 
-The request requires any two of current pH, PvCO₂, and blood-gas HCO₃. The result exposes one
-complete venous-gas coordinate, including an origin for every axis. A missing coordinate is
-calculated only by the retained Henderson–Hasselbalch relation. If all three are supplied, the
-result preserves the supplied values and publishes a pH/PvCO₂ HCO₃ comparator/discrepancy rather
-than silently replacing a value. This lane remains venous; `venous_orientation` is descriptive and
-is never a direct Boston interpretation.
+The root contains schema/software versions, input summary, venous gas, chemistry, screening,
+arterial PaCO2 estimate, unresolved questions, maximum-three next inputs, and methods.
+Venous gas contains measured values, calculated coordinates, numerical consistency, the
+measured-pH reference position, and a standard-base-excess calculation.
 
-Absent a known blocker and within the model domain, `candidate_arterial_region` contains a
-component-selected pH–PaCO₂ rectangle. Its pH component is always the generic
-`generic_peripheral_vbg_offset_v1` component. Its PaCO₂ component is the same generic component
-unless all saturation, specimen, draw-site, and context gates permit the
-`farkas_simplified_93_v1` PaCO₂-only upgrade. Model IDs, profile IDs, evidence descriptors,
-warnings, and limitations are serialized separately for the two axes.
+Each calculation carries `status`, `values`, `units`, `input_origins`, `output_provenance`,
+`method_id`, `evidence_tier`, `limitations`, `missing_inputs`, and optional `applicability`.
+Statuses are AVAILABLE, UNAVAILABLE_MISSING_INPUT, UNAVAILABLE_OUTSIDE_SCOPE, or
+MODEL_DOMAIN_REFUSAL. Unavailable calculations have no numeric values. Screening alone uses
+NOT_CONFIGURED with no selected method or threshold.
 
-The generic rectangle is a published study-level agreement-extrema sensitivity scenario. It is
-not an individual correction or a probability, confidence, prediction, or joint-coverage interval.
-Unknown source context is a warning and limitation, not favorable eligibility. Known out-of-scope
-conditions and nonpositive/nonfinite endpoints yield an unavailable or model-domain-refusal
-candidate region. The implementation never truncates an endpoint to force a positive interval.
-A model-domain refusal retains the attempted components' model, profile, and evidence metadata for
-provenance while withholding the invalid point and intervals.
+Known out-of-scope conditions take precedence over missing inputs; unknown is never favorable.
+Measured PvCO2 and same-sample confirmation are hard model requirements. If those are met and
+context is unknown, the estimate is AVAILABLE with APPLICABILITY_UNCERTAIN, distinct from ELIGIBLE.
+A numerical refusal is local. Model calculations cannot change measured facts or other results.
 
-## State enumeration
+HH output uses CALCULATED_HENDERSON_HASSELBALCH; calculated SBE uses CALCULATED_VAN_SLYKE.
+SBE prefers a reported standard value. Otherwise any core gas pair may support it. A measured
+pH/PvCO2 pair takes precedence for SBE's HH bicarbonate over a third supplied HCO3. Its difference
+from supplied HCO3 remains visible. A derived pH can support a displayed calculated SBE, but
+cannot satisfy the measured-pH requirement for Stewart. See EVIDENCE.md for formulas and assumptions.
 
-If `candidate_arterial_region.status` is `AVAILABLE`, the Explorer passes its closed pH–PaCO₂
-rectangle to the certified terminal-path engine. That engine evaluates both
-`CHRONIC_FLAGGED` and `NOT_CHRONIC_FLAGGED` branches, proves a terminal ruleset path feasible or
-infeasible, and returns every feasible `StateSignature` in canonical order.
+## Additional-information ordering
 
-The result includes:
+The pure function first considers completion/clarification of an attainable PaCO2 estimate,
+then a measured gas coordinate needed for completion, then one nearest chemistry calculation,
+then a conditional description of direct arterial measurements if space remains. Chemistry ties
+prefer albumin for corrected AG, a sole missing Stewart prerequisite, then grouped missing AG
+operands. Repeated suggestions are suppressed; known unfavorable context is never presented as
+something to replace with favorable context. SBE is not requested when calculable. This ordering
+is an interface heuristic, not a clinically validated information-gain ranking.
 
-- `coverage_method_id = CERTIFIED_TERMINAL_PATH_FEASIBILITY`;
-- decision-surface and terminal-path counts;
-- precision used for the proof; and
-- a deterministic display-only coordinate sample map.
+## Synthetic examples
 
-If certification fails, `enumeration_status` is `CERTIFICATION_FAILED` and no possible-state list
-is emitted. Every feature is explicitly `NOT_EVALUABLE`, never silently treated as excluded. If no
-candidate region is available, `enumeration_status` is `NOT_EVALUATED` and the same explicit
-non-evaluability rule applies.
+```python
+from vbg_interpreter import interpret_vbg
+from vbg_interpreter.models import CurrentVbg, Pco2Unit, VbgExplorerRequest
 
-The coordinate view is not the inference engine. Its x-axis is candidate arterial PaCO₂; its
-y-axis is candidate arterial pH. Sample markers exist for explanation, hover/focus, and a visual
-map only. Neither the number of markers nor their occupied area has probability, frequency,
-confidence, or likelihood meaning. Certification applies only within the supplied candidate
-rectangle and retained software ruleset; it does not validate the rectangle's coverage or clinical
-applicability.
+partial = interpret_vbg(VbgExplorerRequest(CurrentVbg(ph=7.32)))
+assert partial.venous_gas.measured_values["ph"]["value"] == 7.32
 
-## Set predicates
+completed = interpret_vbg(VbgExplorerRequest(CurrentVbg(ph=7.32, pco2=55, pco2_unit=Pco2Unit.MMHG)))
+# HH HCO3 ≈ 28.3466 mmol/L; calculated venous SBE ≈ 2.5634 mmol/L.
+# PaCO2 estimation is withheld without confirmed same-sample saturation.
+```
 
-Every user-facing conclusion maps to one of these typed statuses:
-
-| Status | Exact predicate |
-| --- | --- |
-| `PRESENT_ACROSS_ALL_MODELED_STATES` | The feature occurs in every feasible signature. |
-| `POSSIBLE_IN_SOME_MODELED_STATES` | The feature occurs in at least one but not every feasible signature. |
-| `EXCLUDED_WITHIN_MODELED_STATE_SPACE` | The feature occurs in no feasible signature. |
-| `NOT_EVALUABLE` | No valid modeled state space exists, the feature is outside scope, or a feasible ruleset category does not resolve that feature. |
-
-The engine currently publishes predicates for acidemia/near-normal pH/alkalemia, each retained
-primary-process category, expected-compensation and measured-versus-expected categories,
-respiratory and metabolic component features where explicit ruleset conditions support them, the
-mixed-process flag, and both chronicity branches. It does not infer a component from an otherwise
-ambiguous label. If any feasible signature has a primary category that does not resolve respiratory
-or metabolic components, all component conclusions are `NOT_EVALUABLE`; the Explorer does not turn
-that unresolved category into a false component exclusion.
-
-“Excluded” must always retain the phrase “within the modeled state space” in user-facing copy. It
-does not exclude a disorder outside the current model inputs, scope, or software ruleset.
-
-## Point orientation
-
-The modeled point is displayed only for orientation. It never determines the headline when more
-than one state is feasible. A displayed point is modeled, not an arterial measurement. A completed
-venous pH orientation is a separate descriptive lane and cannot select a state or remove a
-chronicity branch.
-
-## Chemistry and longitudinal synthesis
-
-Chemistry and longitudinal results are parallel lanes. Every current-chemistry field is optional:
-an empty lane is `NOT_PROVIDED`, a partial lane is `PARTIAL`, and an anion gap appears only when
-sodium, chloride, and serum total CO₂ are all supplied. Albumin correction, venous-basis Stewart
-partitioning, and each associated information need are independently gated. Serum total CO₂ does
-not become blood-gas HCO₃, does not infer current PaCO₂, and does not narrow the modeled arterial
-state set. A chemistry observation may be described as concordant, discordant, or incomplete only
-when a future rule documents its predicate. A prior observation remains contextual and does not
-delete a chronicity branch.
-
-The information-gain list contains typed, non-directive missing information that could reduce an
-identified limitation. When pH or PvCO₂ was algebraically derived, it identifies the missing
-direct venous measurement; it may also mention arterial confirmation when needed, same-sample
-venous saturation, model context, albumin, base excess, or a comparable prior observation. Each
-need is computed from its own missing input and applicable model gates, independently of the
-candidate region's status; a value already supplied is never requested as missing. It is not a
-treatment recommendation.
+[Request example](examples/request-v3.json) and [complete result example](examples/result-v3.json)
+are synthetic, deterministic fixtures generated by the public entry point. The browser keeps
+values transient and has no JSON export feature.

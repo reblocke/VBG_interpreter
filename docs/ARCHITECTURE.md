@@ -1,83 +1,57 @@
 # Architecture
 
-## Product shape
+The v0.3 Explorer is one static research/educational app with one public Python interpretation
+entry point, `vbg_interpreter.interpret_vbg`. Python determines capability availability;
+JavaScript validates input shape and renders the result without repeating scientific inference.
 
-The repository contains one application:
+## Data flow
 
-```text
-any 2 current VBG coordinates + optional chemistry + optional context + one optional prior observation
-                                      ↓
-                          VbgExplorerRequest
-                                      ↓
-                       vbg_interpreter.interpret_vbg
-                                      ↓
-                          VbgExplorerResult
-                                      ↓
-                   static client-side Explorer browser
-```
+A strict `vbg_explorer_request/3.0` contains current VBG values, optional current chemistry, and
+tri-state context. At least one VBG value is required. Each dependent calculation handles missing
+operands, known scope exclusions, and numerical-domain refusal locally. Results use
+`vbg_explorer_result/3.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
 
-The result has independent observed-VBG, completed-venous-gas, venous-orientation,
-candidate-region, state-space, chemistry, and longitudinal lanes. The final result synthesizes
-their limitations and typed information needs without flattening provenance. Every serialized
-result records the Explorer software version; a deployed bundle separately records the exact
-source commit.
+- `models.py` defines compact input/result contracts. `mapping.py` preserves the strict JSON
+  boundary, including decimal strings, exact keys, explicit units, and duplicate rejection.
+- `venous_gas.py` echoes source measurements, completes missing gas coordinates using HH, and
+  selects reported standard base excess or calculates venous-basis SBE with the approved
+  normothermic Van Slyke equation.
+- `arterial_paco2.py` reads only source PvCO2 and same-sample saturation. It cannot receive
+  completed-gas coordinates. Applicability is separate from availability and evidence tier.
+- `chemistry.py` computes serum AG, corrected AG, Na−Cl, and the optional venous Stewart partition.
+- `screening.py` returns `NOT_CONFIGURED`; no categorical threshold is installed.
+- `information.py` ranks at most three next-input descriptions with a deterministic interface
+  heuristic, not a claim of measured diagnostic information gain.
+- `interpret.py` composes the capabilities without a global gas-completion prerequisite.
 
-## Source ownership
-
-- `src/vbg_interpreter/models.py` contains the single typed request/result contracts.
-- `normalize.py` converts only explicit input units at the boundary.
-- `venous_gas.py` completes any missing pH/PvCO₂/blood-gas-HCO₃ coordinate and produces only a
-  descriptive venous orientation.
-- `candidate_region.py` owns the generic Bloom-derived pH/PaCO₂ scenario and the gated
-  Farkas/Jörg PaCO₂-only component upgrade.
-- `certified_envelope.py`, `state_categories.py`, and `state_space.py` own exhaustive compatibility
-  ruleset enumeration and set predicates.
-- `chemistry.py` owns field-by-field serum chemistry and its narrow adapter to the upstream
-  structured Stewart partition.
-- `longitudinal.py` retains prior observations without changing current modeled state space.
-- `interpret.py` is the one public composition entry point.
-- `mapping.py` and `browser_adapter.py` define the strict browser boundary.
-
-The upstream compatibility baseline was `d2b25089f998748a91abfea14c68c23ac9eed708`. The external
-`stewartlight` dependency is pinned in `pyproject.toml` and `uv.lock` to its descendant
-`f277cac54801d85366cbadbf11804f6643f6a869`, which adds the extracted structured Stewart
-partition helper and its specimen-neutral input. That upstream change was tested against frozen
-legacy ABG payload fixtures; the Explorer calls no upstream browser, narrative, or full-result
-surface. The Explorer does not ship a second editable ABG implementation.
+The pinned `stewartlight@f277cac54801d85366cbadbf11804f6643f6a869` structured helper owns Stewart
+partition formulas. It accepts pH, SBE, Na, Cl, albumin, and optional lactate. The Explorer supplies
+measured venous pH and reported or explicitly calculated venous SBE; serum total CO2 is never an
+operand. The helper documents supplied SBE; the Explorer's calculated-SBE adaptation is a
+separate documented derivation, not new upstream or clinical validation.
 
 ## Static browser build
 
-`scripts/build_web.py` creates ignored `.build/web/` from source `web/` and stages exactly two
-installed pure-Python packages: `vbg_interpreter` and the pinned `stewartlight`. It writes a
-canonical package manifest and a release manifest. GitHub Pages passes the
-reviewed source commit into the build, and the release manifest exposes that exact binding. Local
-builds are explicitly marked unbound. The Pyodide worker accepts only same-origin assets, mounts the staged
-packages under its own filesystem root, and imports the single browser adapter.
+`scripts/build_web.py` replaces ignored `.build/web/`, copying `web/` and staging the installed
+Explorer and pinned upstream Python package. It creates a deterministic package manifest and
+release manifest. No generated package copy is committed. The self-hosted Pyodide worker loads
+only same-origin assets and invokes the single JSON browser adapter.
 
-Browser JavaScript may validate form shape and render typed results, but the Python mapping and
-interpreter are authoritative. Browser code does not reconstruct scientific classifications from
-prose or infer values independently.
+The form has VBG, optional chemistry, and collapsed model-context sections. Five top-level result
+cards separate venous facts, chemistry, the optional PaCO2 estimate, uncertainty, and collapsed
+methods/evidence. Editing or resetting invalidates pending worker responses before rendering.
+Safe DOM text rendering, labeled controls, keyboard access, and responsive layout are required.
 
-The browser and mapping require the v2 minimum of any two gas coordinates. They do not require a
-chemistry panel or silently synthesize an omitted chemistry value. The worker receives a strict
-schema-versioned JSON request; it returns origins, model component identities, evidence, warnings,
-and limitations from Python rather than reimplementing them in JavaScript.
+## Privacy and publication
 
-## Privacy and security boundary
+There is no backend, entered-value logging, storage, URL state, telemetry, or export. Ordinary
+same-origin hosting requests load the code/runtime. No patient inputs are used in testing.
 
-The static app has a restrictive same-origin content-security policy. It has no application
-backend, URL state, browser storage, telemetry, or entered-value export. The self-hosted Pyodide
-vendor is verified by `scripts/verify_pyodide_vendor.py`.
+Public `reblocke/VBG_interpreter` main is canonical. The historical private repository has an
+intentionally unrelated history and remains private and archived. Do not merge private ancestry
+into public main. Pages verifies public visibility, required checks, the exact source commit,
+and the current main identity; the release manifest records the same reviewed source commit.
 
-GitHub Pages deployment is allowed only from `reblocke/VBG_interpreter` while the repository's
-live API visibility is public. The deployment workflow re-runs the complete local verification and
-synthetic matrix, uploads only `.build/web`, and uses pinned action commits. The private development
-history is preserved in a separate private archived repository; the public repository begins with
-one reviewed, history-free source commit.
-
-## Verification
-
-`make test` runs focused Python/browser-contract tests. `make validation` runs a deterministic
-synthetic scientific matrix. `make e2e` exercises the static browser. `make verify` checks
-formatting, lint, the vendor runtime, tests, the generated bundle, and E2E behavior. CI retains
-the required `verify` and `validation` job names.
+`make verify` checks formatting, lint, Pyodide integrity, Python contracts, staging, and Chromium
+E2E. `make validation` runs the synthetic scientific capability matrix. Neither is clinical
+validation. Required CI job names remain `verify` and `validation`.

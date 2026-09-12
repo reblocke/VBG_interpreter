@@ -1,0 +1,342 @@
+{
+  "arterial_paco2_estimate": {
+    "applicability": "ELIGIBLE",
+    "evidence_tier": "EXTERNALLY_EVALUATED",
+    "input_origins": {
+      "pco2": "MEASURED_OR_REPORTED",
+      "venous_saturation": "MEASURED_OR_REPORTED"
+    },
+    "limitations": [
+      "Externally evaluated PaCO2 component; no local end-to-end validation.",
+      "Deterministic agreement range, not a patient-specific 95% probability interval."
+    ],
+    "method_id": "farkas_simplified_93_v1",
+    "missing_inputs": [],
+    "output_provenance": "MODEL_BASED_ARTERIAL_ESTIMATE",
+    "status": "AVAILABLE",
+    "units": {
+      "lower": "mmHg",
+      "measured_pvco2": "mmHg",
+      "point": "mmHg",
+      "saturation_percent": "%",
+      "upper": "mmHg"
+    },
+    "values": {
+      "lower": 45.72,
+      "measured_pvco2": 55.0,
+      "oxygen_profile": "jorg_2023_no_supplemental_oxygen",
+      "point": 51.04,
+      "saturation_percent": 75.0,
+      "upper": 56.87
+    }
+  },
+  "chemistry": {
+    "anion_gap": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "serum total CO2": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "Serum total CO2 is distinct from blood-gas HCO3; reference intervals are laboratory-dependent."
+      ],
+      "method_id": "serum_anion_gap_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "anion_gap": "mmol/L"
+      },
+      "values": {
+        "anion_gap": 11.0
+      }
+    },
+    "corrected_anion_gap": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "albumin": "MEASURED_OR_REPORTED_SERUM",
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "serum total CO2": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "No universal high/normal/low AG cutoff is applied."
+      ],
+      "method_id": "albumin_corrected_anion_gap_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "corrected_anion_gap": "mmol/L"
+      },
+      "values": {
+        "corrected_anion_gap": 11.0
+      }
+    },
+    "sodium_chloride_difference": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "chloride": "MEASURED_OR_REPORTED_SERUM",
+        "sodium": "MEASURED_OR_REPORTED_SERUM"
+      },
+      "limitations": [
+        "Descriptive strong-ion surrogate; not a complete metabolic interpretation."
+      ],
+      "method_id": "sodium_chloride_difference_v1",
+      "missing_inputs": [],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "AVAILABLE",
+      "units": {
+        "sodium_chloride_difference": "mmol/L"
+      },
+      "values": {
+        "sodium_chloride_difference": 35.0
+      }
+    },
+    "venous_stewart_partition": {
+      "applicability": null,
+      "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+      "input_origins": {
+        "albumin": "MEASURED_OR_REPORTED",
+        "chloride": "MEASURED_OR_REPORTED",
+        "lactate": "MEASURED_OR_REPORTED_SERUM",
+        "measured venous pH": "MEASURED_OR_REPORTED",
+        "sbe": "CALCULATED_VAN_SLYKE",
+        "sbe.hco3": "CALCULATED_HENDERSON_HASSELBALCH",
+        "sbe.pco2": "MEASURED_OR_REPORTED",
+        "sbe.ph": "MEASURED_OR_REPORTED",
+        "sodium": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Venous-basis partition of reported or calculated SBE; not arterial SBE.",
+        "Calculated venous-basis SBE; normothermia (37°C) assumed.",
+        "Standardized effective hemoglobin 5 g/dL; no analyzer-equivalence claim."
+      ],
+      "method_id": "stewartlight_venous_partition_v1",
+      "missing_inputs": [],
+      "output_provenance": "VENOUS_BASIS_PARTITION",
+      "status": "AVAILABLE",
+      "units": {
+        "albumin_component": "mmol/L",
+        "closure_error": "mmol/L",
+        "lactate_component": "mmol/L",
+        "nonlactate_unmeasured_component": "mmol/L",
+        "reconstructed_sbe": "mmol/L",
+        "sodium_chloride_component": "mmol/L",
+        "total_sbe": "mmol/L",
+        "unmeasured_ions_component": "mmol/L"
+      },
+      "values": {
+        "albumin_component": 0.0,
+        "closure_error": 0.0,
+        "lactate_component": -2.0,
+        "nonlactate_unmeasured_component": 4.563403169179708,
+        "reconstructed_sbe": 2.563403169179708,
+        "sodium_chloride_component": 0.0,
+        "total_sbe": 2.563403169179708,
+        "unmeasured_ions_component": 2.563403169179708
+      }
+    }
+  },
+  "highest_value_next_inputs": [
+    "If arterial pH or directly measured PaCO2 is the question, an arterial blood gas provides those measurements; venous data do not establish them."
+  ],
+  "input_summary": {
+    "context": {
+      "known_poor_perfusion_or_hemodynamic_instability": "NO",
+      "material_preanalytic_concern": "NO",
+      "recent_major_ventilation_or_treatment_change": "NO",
+      "supplemental_oxygen": "NO"
+    },
+    "current_chemistry": {
+      "albumin_g_l": 40.0,
+      "chloride_mmol_l": 105.0,
+      "lactate_mmol_l": 2.0,
+      "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT",
+      "serum_total_co2_mmol_l": 24.0,
+      "sodium_mmol_l": 140.0
+    },
+    "current_vbg": {
+      "base_excess_basis": "UNKNOWN",
+      "base_excess_mmol_l": null,
+      "draw_site": "UPPER_EXTREMITY_PERIPHERAL",
+      "hco3_basis": "UNKNOWN",
+      "hco3_mmol_l": null,
+      "pco2": 55.0,
+      "pco2_unit": "mmHg",
+      "ph": 7.32,
+      "saturation_same_sample": "YES",
+      "specimen_type": "PERIPHERAL_VENOUS",
+      "venous_o2_saturation": {
+        "normalized_percentage_points": 75.0,
+        "unit": "PERCENTAGE_POINTS",
+        "value": 75.0
+      }
+    },
+    "schema_version": "vbg_explorer_request/3.0"
+  },
+  "methods": {
+    "albumin_corrected_anion_gap_v1": {
+      "description": "AG + 0.25 × (40 − albumin g/L).",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "farkas_simplified_93_v1": {
+      "description": "Estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample saturation%).",
+      "evidence_tier": "EXTERNALLY_EVALUATED",
+      "sources": [
+        "https://doi.org/10.1186/s40635-023-00564-w"
+      ]
+    },
+    "henderson_hasselbalch_v1": {
+      "description": "Venous gas completion: HCO3 = 0.0307 × PvCO2 × 10^(pH − 6.095).",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#venous-gas-and-standard-base-excess"
+      ]
+    },
+    "reported_venous_sbe_v1": {
+      "description": "Reported venous standard base excess; analyzer method unspecified.",
+      "evidence_tier": "MEASURED_OR_REPORTED",
+      "sources": []
+    },
+    "serum_anion_gap_v1": {
+      "description": "Na − Cl − serum total CO2.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "sodium_chloride_difference_v1": {
+      "description": "Na − Cl; descriptive strong-ion surrogate.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "docs/EVIDENCE.md#serum-chemistry"
+      ]
+    },
+    "stewartlight_venous_partition_v1": {
+      "description": "Venous-basis partition through the pinned structured Stewart Light helper.",
+      "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
+      "sources": [
+        "https://github.com/reblocke/stewart-light/tree/f277cac54801d85366cbadbf11804f6643f6a869"
+      ]
+    },
+    "venous_sbe_van_slyke_37c_v1": {
+      "description": "Venous SBE = 0.9287 × [HCO3 − 24.4 + 14.83 × (pH − 7.4)]; 37°C assumed.",
+      "evidence_tier": "DERIVED_CALCULATION",
+      "sources": [
+        "https://doi.org/10.1097/00003246-199807000-00015"
+      ]
+    }
+  },
+  "schema_version": "vbg_explorer_result/3.0",
+  "screening": {
+    "evidence_tier": "NOT_CONFIGURED",
+    "input_origins": {},
+    "limitations": [
+      "No owner-approved PvCO2 screening threshold is configured."
+    ],
+    "method_id": null,
+    "output_provenance": "NONE",
+    "status": "NOT_CONFIGURED",
+    "units": {},
+    "values": {}
+  },
+  "software_version": "0.3.0",
+  "unresolved_questions": [
+    "Arterial pH, arterial oxygenation, and a complete arterial acid–base interpretation are not established."
+  ],
+  "venous_gas": {
+    "calculated_values": {
+      "hco3": {
+        "applicability": null,
+        "evidence_tier": "DERIVED_CALCULATION",
+        "input_origins": {
+          "pco2": "MEASURED_OR_REPORTED",
+          "ph": "MEASURED_OR_REPORTED"
+        },
+        "limitations": [
+          "Algebraic venous coordinate; not an independent measurement."
+        ],
+        "method_id": "henderson_hasselbalch_v1",
+        "missing_inputs": [],
+        "output_provenance": "CALCULATED_HENDERSON_HASSELBALCH",
+        "status": "AVAILABLE",
+        "units": {
+          "hco3": "mmol/L"
+        },
+        "values": {
+          "hco3": 28.34660584599947
+        }
+      }
+    },
+    "consistency": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "pco2": "MEASURED_OR_REPORTED",
+        "ph": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Numerical comparison only; discrepancy is not a clinical disorder."
+      ],
+      "method_id": "henderson_hasselbalch_v1",
+      "missing_inputs": [
+        "hco3"
+      ],
+      "output_provenance": "DERIVED_CALCULATION",
+      "status": "UNAVAILABLE_MISSING_INPUT",
+      "units": {},
+      "values": {}
+    },
+    "measured_values": {
+      "pco2": {
+        "basis": "MEASURED_OR_REPORTED",
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "mmHg",
+        "value": 55.0
+      },
+      "ph": {
+        "basis": "MEASURED_OR_REPORTED",
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "pH units",
+        "value": 7.32
+      },
+      "venous_saturation": {
+        "provenance": "MEASURED_OR_REPORTED",
+        "units": "PERCENTAGE_POINTS",
+        "value": 75.0
+      }
+    },
+    "ph_reference_position": "below",
+    "standard_base_excess": {
+      "applicability": null,
+      "evidence_tier": "DERIVED_CALCULATION",
+      "input_origins": {
+        "hco3": "CALCULATED_HENDERSON_HASSELBALCH",
+        "pco2": "MEASURED_OR_REPORTED",
+        "ph": "MEASURED_OR_REPORTED"
+      },
+      "limitations": [
+        "Calculated venous-basis SBE; normothermia (37°C) assumed.",
+        "Standardized effective hemoglobin 5 g/dL; no analyzer-equivalence claim."
+      ],
+      "method_id": "venous_sbe_van_slyke_37c_v1",
+      "missing_inputs": [],
+      "output_provenance": "CALCULATED_VAN_SLYKE",
+      "status": "AVAILABLE",
+      "units": {
+        "sbe": "mmol/L"
+      },
+      "values": {
+        "sbe": 2.563403169179708
+      }
+    }
+  }
+}

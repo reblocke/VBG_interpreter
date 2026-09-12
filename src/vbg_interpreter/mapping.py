@@ -1,4 +1,4 @@
-"""Strict mapping boundary for ``vbg_explorer_request/2.0``."""
+"""Strict mapping boundary for ``vbg_explorer_request/3.0``."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from enum import StrEnum
 
 from vbg_interpreter.models import (
     VBG_EXPLORER_REQUEST_SCHEMA_VERSION,
+    BaseExcessBasis,
     ChemistryTimeRelationship,
     CurrentChemistry,
     CurrentVbg,
@@ -17,8 +18,6 @@ from vbg_interpreter.models import (
     ExplorerContext,
     Hco3Basis,
     Pco2Unit,
-    PriorObservation,
-    PriorObservationType,
     SaturationInput,
     SaturationUnit,
     SpecimenType,
@@ -32,9 +31,7 @@ from vbg_interpreter.serialization import (
 )
 
 _DECIMAL = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\Z")
-_ROOT_KEYS = frozenset(
-    {"schema_version", "current_vbg", "current_chemistry", "context", "prior_observation"}
-)
+_ROOT_KEYS = frozenset({"schema_version", "current_vbg", "current_chemistry", "context"})
 _CURRENT_VBG_KEYS = frozenset(
     {
         "ph",
@@ -43,6 +40,8 @@ _CURRENT_VBG_KEYS = frozenset(
         "hco3_mmol_l",
         "hco3_basis",
         "base_excess_mmol_l",
+        "base_excess_basis",
+        "saturation_same_sample",
         "venous_o2_saturation",
         "specimen_type",
         "draw_site",
@@ -67,21 +66,6 @@ _CONTEXT_KEYS = frozenset(
     }
 )
 _SATURATION_KEYS = frozenset({"value", "unit"})
-_PRIOR_KEYS = frozenset(
-    {
-        "observation_type",
-        "elapsed_hours",
-        "ph",
-        "pco2",
-        "pco2_unit",
-        "hco3_mmol_l",
-        "serum_total_co2_mmol_l",
-        "base_excess_mmol_l",
-        "specimen_type",
-        "draw_site",
-        "intervening_major_ventilation_or_treatment_change",
-    }
-)
 
 
 def request_from_json(payload: str) -> VbgExplorerRequest:
@@ -96,13 +80,12 @@ def request_from_mapping(payload: Mapping[str, object]) -> VbgExplorerRequest:
     root = require_exact_keys(payload, _ROOT_KEYS, path="request")
     if root["schema_version"] != VBG_EXPLORER_REQUEST_SCHEMA_VERSION:
         raise ExplorerSerializationError(
-            "schema_version must be vbg_explorer_request/2.0; no legacy migration is available."
+            "schema_version must be vbg_explorer_request/3.0; no legacy migration is available."
         )
     return VbgExplorerRequest(
         current_vbg=_current_vbg(root["current_vbg"]),
         current_chemistry=_chemistry(root["current_chemistry"]),
         context=_context(root["context"]),
-        prior_observation=_prior(root["prior_observation"]),
     )
 
 
@@ -117,6 +100,10 @@ def _current_vbg(value: object) -> CurrentVbg:
         hco3_basis=_enum(Hco3Basis, data["hco3_basis"], "current_vbg.hco3_basis"),
         base_excess_mmol_l=_optional_number(
             data["base_excess_mmol_l"], "current_vbg.base_excess_mmol_l"
+        ),
+        base_excess_basis=_enum(BaseExcessBasis, data["base_excess_basis"], "base_excess_basis"),
+        saturation_same_sample=_enum(
+            TriState, data["saturation_same_sample"], "saturation_same_sample"
         ),
         venous_o2_saturation=None if saturation is None else _saturation(saturation),
         specimen_type=_enum(SpecimenType, data["specimen_type"], "current_vbg.specimen_type"),
@@ -178,41 +165,6 @@ def _saturation(value: object) -> SaturationInput:
             SaturationUnit,
             data["unit"],
             "current_vbg.venous_o2_saturation.unit",
-        ),
-    )
-
-
-def _prior(value: object) -> PriorObservation | None:
-    if value is None:
-        return None
-    data = _object(value, _PRIOR_KEYS, "prior_observation")
-    return PriorObservation(
-        observation_type=_enum(
-            PriorObservationType,
-            data["observation_type"],
-            "prior_observation.observation_type",
-        ),
-        elapsed_hours=_optional_number(data["elapsed_hours"], "prior_observation.elapsed_hours"),
-        ph=_optional_number(data["ph"], "prior_observation.ph"),
-        pco2=_optional_number(data["pco2"], "prior_observation.pco2"),
-        pco2_unit=_optional_enum(Pco2Unit, data["pco2_unit"], "prior_observation.pco2_unit"),
-        hco3_mmol_l=_optional_number(data["hco3_mmol_l"], "prior_observation.hco3_mmol_l"),
-        serum_total_co2_mmol_l=_optional_number(
-            data["serum_total_co2_mmol_l"], "prior_observation.serum_total_co2_mmol_l"
-        ),
-        base_excess_mmol_l=_optional_number(
-            data["base_excess_mmol_l"], "prior_observation.base_excess_mmol_l"
-        ),
-        specimen_type=_optional_enum(
-            SpecimenType,
-            data["specimen_type"],
-            "prior_observation.specimen_type",
-        ),
-        draw_site=_optional_enum(DrawSite, data["draw_site"], "prior_observation.draw_site"),
-        intervening_major_ventilation_or_treatment_change=_enum(
-            TriState,
-            data["intervening_major_ventilation_or_treatment_change"],
-            "prior_observation.intervening_major_ventilation_or_treatment_change",
         ),
     )
 

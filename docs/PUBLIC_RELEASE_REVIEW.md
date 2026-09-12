@@ -90,3 +90,20 @@ client-side/no-persistence behavior, synthetic-only testing, and conservative cl
 This supplement does not authorize clinical use, create external validation, change an evidence
 tier, add a rights or freedom-to-operate opinion, or authorize publication of private history,
 governed records, PHI, credentials, or protected data.
+
+## v0.3.0 source and Pages publication supplement
+
+Decision date: 2026-09-12. Owner: Brian Locke (`github:reblocke`). The owner approved the
+input-adaptive v0.3 plan and its calculated venous SBE extension, including source merge and
+commit-bound automatic Pages deployment after review and passing verify/validation checks.
+This authorizes an ordinary public research preview update, not a new tag or GitHub Release.
+
+The reviewed scope removes individual generic arterial regions, Boston enumeration, and
+historical inputs; adds independently gated partial results, explicit same-sample confirmation,
+Na−Cl, and sourced normothermic calculated venous SBE; and simplifies browser rendering.
+Calculated SBE may support the venous Stewart partition with its provenance retained. No
+arterial-SBE, analyzer-equivalence, patient-specific coverage, or clinical-validation claim is made.
+
+Existing public-visibility, exact-source-commit, static/privacy, attribution, and synthetic-only
+verification requirements continue. Archived private history is preserved privately, never
+merged into the public lineage. The v0.1 and v0.2 publication records above remain historical.

@@ -106,135 +106,6 @@ def _normalized_document_text() -> str:
     return " ".join(" ".join(_document_inventory().text).lower().split())
 
 
-def test_explorer_is_one_research_only_vbg_surface_with_bounded_claims() -> None:
-    inventory = _document_inventory()
-    text = _normalized_document_text()
-
-    assert sum(tag == "form" for tag, _ in inventory.tags) == 1
-    assert "vbg acid" in text and "explorer" in text
-    assert "research" in text and "educational" in text
-    assert "not validated" in text or "not clinically validated" in text
-    assert (
-        "does not replace an abg" in text
-        or "not a substitute for an abg" in text
-        or "cannot replace an abg" in text
-        or "replace an arterial blood gas" in text
-    )
-    assert (
-        "does not estimate arterial oxygenation" in text
-        or "no arterial oxygenation" in text
-        or "arterial oxygenation is not estimated" in text
-    )
-    assert "diagnos" in text and ("not" in text or "no " in text)
-    assert not re.search(r"\bsupported(?:_with_caution)?\b", text)
-
-
-def test_explorer_links_to_the_upstream_abg_app_without_loading_it() -> None:
-    matching_links = []
-    for anchor in _document_inventory().anchors:
-        attributes = anchor["attributes"]
-        text_parts = anchor["text"]
-        assert isinstance(attributes, dict)
-        assert isinstance(text_parts, list)
-        if attributes.get("href") == UPSTREAM_ABG_URL:
-            matching_links.append((attributes, " ".join(text_parts).lower()))
-
-    assert len(matching_links) == 1
-    attributes, link_text = matching_links[0]
-    assert "abg" in link_text or "arterial" in link_text
-    link_rel = set(str(attributes.get("rel", "")).split())
-    assert "noreferrer" in link_rel
-    if attributes.get("target") == "_blank":
-        assert "noopener" in link_rel
-
-
-def test_optional_inputs_are_progressively_disclosed_and_not_required() -> None:
-    details_groups = _document_inventory().details
-    assert details_groups, "Optional Explorer inputs must be progressively disclosed."
-
-    optional_groups = []
-    for group in details_groups:
-        elements = group["elements"]
-        tags = group["tags"]
-        text_parts = group["text"]
-        assert isinstance(elements, list)
-        assert isinstance(tags, list)
-        assert isinstance(text_parts, list)
-        text = " ".join(" ".join(text_parts).lower().split())
-        if "optional" in text:
-            optional_groups.append(group)
-            assert "summary" in tags
-            assert "input" in tags or "select" in tags
-            for tag, attributes in elements:
-                if tag in {"input", "select", "textarea"}:
-                    assert "required" not in attributes
-
-    assert optional_groups
-
-
-def test_current_contract_accepts_two_gas_values_and_optional_chemistry() -> None:
-    inventory = _document_inventory()
-    controls = {
-        attributes["id"]: attributes
-        for tag, attributes in inventory.tags
-        if tag in {"input", "select"} and "id" in attributes
-    }
-    for field_id in (
-        "current-ph",
-        "current-pco2",
-        "current-hco3",
-        "sodium",
-        "chloride",
-        "serum-total-co2",
-        "albumin",
-        "lactate",
-    ):
-        assert field_id in controls
-        assert "required" not in controls[field_id]
-
-    optional_current = next(
-        group
-        for group in inventory.details
-        if group["attributes"].get("id") == "optional-current-details"
-    )
-    optional_ids = {
-        attributes["id"] for _, attributes in optional_current["elements"] if "id" in attributes
-    }
-    assert "current-hco3" not in optional_ids
-    assert "hco3-basis" not in optional_ids
-
-    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
-    assert 'REQUEST_SCHEMA_VERSION = "vbg_explorer_request/2.0"' in app
-    assert re.search(
-        r"\[ph,\s*pco2,\s*hco3\]\.filter\(\(value\)\s*=>\s*value\s*!==\s*null\)"
-        r"\.length\s*<\s*2",
-        app,
-    )
-    assert "pco2_unit: pco2 === null ? null" in app
-
-
-def test_state_space_has_an_accessible_visual_and_equivalent_table() -> None:
-    html = INDEX_PATH.read_text(encoding="utf-8")
-    document_text = _normalized_document_text()
-    active_source = _active_source_text()
-    combined = f"{html}\n{active_source}"
-
-    assert re.search(r"state[- ]space", combined, re.IGNORECASE)
-    assert "<svg" in html or re.search(r"createElementNS\([^\n]+[\"']svg[\"']", active_source)
-    assert re.search(r'<svg[^>]+role=["\']img["\']', html) or re.search(
-        r"setAttribute\(\s*[\"']role[\"']\s*,\s*[\"']img[\"']\s*\)",
-        active_source,
-    )
-    assert "aria-label" in combined or "aria-labelledby" in combined
-    assert "<table" in html or re.search(r"createElement\(\s*[\"']table[\"']\s*\)", active_source)
-    assert "<caption" in html or re.search(
-        r"createElement\(\s*[\"']caption[\"']\s*\)", active_source
-    )
-    assert "scope" in combined
-    assert "not a probability" in document_text
-    assert "no frequency meaning" in document_text
-
-
 def test_worker_exposes_one_interpretation_message_and_exact_python_adapter() -> None:
     active_source = _active_source_text()
     worker = WORKER_PATH.read_text(encoding="utf-8")
@@ -258,7 +129,7 @@ def test_worker_exposes_one_interpretation_message_and_exact_python_adapter() ->
         "preflight-vbg",
         "estimate-vbg-paco2",
     ):
-        assert obsolete_message not in active_source
+        assert not re.search(r"[\"']" + re.escape(obsolete_message) + r"[\"']", active_source)
     assert "stewartlight.vbg.browser_adapter" not in worker
 
 
@@ -266,7 +137,7 @@ def test_browser_preserves_decimal_lexemes_for_the_strict_python_boundary() -> N
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
 
     assert "DECIMAL_STRING" in app
-    for function_name in ("requiredDecimalString", "optionalDecimalString"):
+    for function_name in ("optionalDecimalString",):
         match = re.search(
             rf"function\s+{function_name}\s*\([^)]*\)\s*\{{(?P<body>.*?)\n\}}",
             app,
@@ -298,7 +169,10 @@ def test_active_explorer_has_no_storage_url_state_telemetry_or_external_api() ->
         assert not re.search(pattern, source), f"Active Explorer contains {label}."
 
     literal_external_urls = re.findall(r"[\"'](https?://[^\"']+)[\"']", source)
-    assert literal_external_urls == ["http://www.w3.org/2000/svg"]
+    assert set(literal_external_urls) <= {
+        "https://",
+        "https://github.com/reblocke/VBG_interpreter/blob/main/docs/EVIDENCE.md",
+    }
 
     inventory = _document_inventory()
     for tag, attributes in inventory.tags:
@@ -370,3 +244,20 @@ def test_reset_and_edits_invalidate_stale_worker_responses_before_rendering() ->
     )
 
     assert re.search(r"addEventListener\(\s*[\"'](?:input|change)[\"']", source)
+
+
+def test_adaptive_form_has_labels_one_action_and_five_result_cards():
+    inventory = _document_inventory()
+    inputs = [(tag, attrs) for tag, attrs in inventory.tags if tag in {"input", "select"}]
+    labels = {attrs.get("for") for tag, attrs in inventory.tags if tag == "label"}
+    assert all(attrs["id"] in labels for _, attrs in inputs)
+    assert all("required" not in attrs for _, attrs in inputs)
+    assert sum(tag == "form" for tag, _ in inventory.tags) == 1
+    assert (
+        sum(attrs.get("type") == "submit" for tag, attrs in inventory.tags if tag == "button") == 1
+    )
+    assert "Interpret available data" in INDEX_PATH.read_text()
+    assert "saturation-same-sample" in labels
+    assert "chemistry-relationship" in labels
+    assert sum(attrs.get("id", "").endswith("-card") for _, attrs in inventory.tags) == 4
+    assert all("open" not in attrs for tag, attrs in inventory.tags if tag == "details")

@@ -15,18 +15,17 @@ browser workflow or copy an upstream formula already exposed by the pinned depen
 - Keep measured venous, modeled arterial, calculated, and serum-chemistry values distinct.
 - Return partial results when a dependent lane cannot run; do not make the full request fail.
 - Treat unknown model context as unknown, never as favorable context.
-- Use the certified state-space engine for every possible/excluded conclusion. A display grid is
-  explanatory only and cannot be used as an inference engine.
-- Do not assign probability, frequency, confidence, or likelihood meaning to deterministic bounds
-  or display cells.
+- Keep inference capability-based; no population-derived arterial rectangle or Boston state output.
+- Do not assign probability meaning to deterministic agreement ranges.
 - Keep serum total CO₂ distinct from blood-gas HCO₃. Do not infer current PaCO₂ from chemistry.
 - Do not estimate arterial oxygenation, PaO₂, A–a gradient, P/F ratio, tissue hypoxia, oxygen
   extraction, or arterial SBE.
-- Preserve the component evidence boundary: modeled pH is derivation-only, modeled PaCO₂ has its
-  recorded external-evaluation limitation, calculated HCO₃ is derived, and Boston output is an
-  implemented compatibility ruleset rather than a clinical gold standard.
-- Prior observations are contextual only. Do not use one prior result to prove chronicity or
-  remove acute-on-chronic states.
+- Keep measured gas coordinates, HH-derived coordinates, calculated venous SBE, and modeled
+  PaCO2 separate. Only measured PvCO2 with confirmed same-sample saturation enters the model.
+- Standard BE may be reported or calculated with the approved Van Slyke method at assumed 37°C;
+  retain its provenance in venous Stewart output. Actual/unknown BE is not automatically SBE.
+- Require measured venous pH and same-time chemistry for the Stewart partition.
+- Keep categorical screening NOT_CONFIGURED until an owner-approved sourced threshold exists.
 
 ## Privacy and clinical copy
 

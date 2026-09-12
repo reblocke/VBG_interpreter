@@ -32,13 +32,13 @@ def test_public_metadata_and_documentation_keep_the_research_boundary() -> None:
     assert "do not enter PHI" in readme
     assert "public research preview" in clinical_scope
     assert "current public research preview" in clinical_scope
-    assert "hosted v0.2 research preview" in readme
+    assert "hosted v0.3 research preview" in readme
     assert "not independent legal advice" in release_review
     assert "No external rights or legal-opinion record exists" in release_review
     assert "Release: `v0.1.0` public research preview" in release_review
     assert "v0.2.0 source and Pages publication supplement" in release_review
     assert "Outside this authorization: creating a `v0.2.0` tag or GitHub Release" in release_review
-    assert 'version = "0.2.0"' in project
+    assert 'version = "0.3.0"' in project
     assert "Private VBG" not in project
 
 
@@ -49,10 +49,10 @@ def test_release_version_is_consistent_across_public_surfaces() -> None:
     changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert version == __version__ == "0.2.0"
+    assert version == __version__ == "0.3.0"
     assert re.search(rf"^version: {re.escape(version)}$", citation, re.MULTILINE)
-    assert "date-released: 2026-08-04" in citation
-    assert f"## [{version}] - 2026-08-04" in changelog
+    assert "date-released: 2026-09-12" in citation
+    assert f"## [{version}] - 2026-09-12" in changelog
     assert "current public research preview" in readme
 
     environment = os.environ.copy()
@@ -82,7 +82,7 @@ def test_pages_workflow_is_exact_repository_commit_and_live_visibility_bound() -
     assert "github.event.repository.visibility" not in workflow
     assert "VBG_EXPLORER_SOURCE_COMMIT: ${{ github.sha }}" in workflow
     assert 'manifest["source_commit"] == os.environ["GITHUB_SHA"]' in workflow
-    assert 'manifest["version"] == "0.2.0"' in workflow
+    assert 'manifest["version"] == "0.3.0"' in workflow
     assert "make verify" in workflow and "make validation" in workflow
     assert "path: .build/web" in workflow
     assert "pages: write" in workflow and "id-token: write" in workflow
@@ -116,7 +116,7 @@ def test_web_build_emits_exact_commit_binding() -> None:
         "schema_version": "vbg_explorer_release_manifest/1.0",
         "source_commit": TEST_COMMIT,
         "source_repository": "https://github.com/reblocke/VBG_interpreter",
-        "version": "0.2.0",
+        "version": "0.3.0",
     }
 
 

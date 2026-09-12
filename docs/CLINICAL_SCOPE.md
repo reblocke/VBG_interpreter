@@ -1,105 +1,58 @@
 # Clinical scope
 
-## Purpose and limit
+Version 0.3.0 is the current public research preview. It presents reported venous measurements,
+algebraic calculations, serum chemistry, and a narrowly scoped PaCO2 estimate. It is not
+clinically validated, not medical advice, and not a medical device. It must not be used to
+diagnose, treat, triage, or replace an arterial blood gas when arterial confirmation is required.
+Use synthetic values only; do not enter PHI or real patient data.
 
-VBG Acid–Base Explorer is exploratory research/educational software. It presents measurements,
-deterministic calculations, and explicitly bounded modeled possibilities. It is not clinically
-validated, not a medical device, and does not provide diagnosis, treatment direction, or a basis
-to substitute a VBG for an ABG when an arterial measurement is clinically required.
+## Evidence boundaries
 
-Public availability, an open-source license, passing software tests, and a hosted demonstration do
-not change this scope. The intended users are educators, researchers, and software reviewers using
-synthetic inputs. It is not intended for bedside decision
-support, triage, monitoring, screening, diagnostic exclusion, or autonomous interpretation.
+- A single VBG value can be reported without completing a gas. At least two appropriate gas
+  coordinates enable HH completion. Completed coordinates remain venous and explicitly derived.
+- The 7.35–7.45 pH comparison is a retained descriptive reference band. It is not a validated
+  venous normal interval or an arterial acidemia/alkalemia classification.
+- Reported-versus-HH HCO3 difference is numerical consistency information without a clinical
+  discordance cutoff. Reported HCO3 provenance may be unknown.
+- Calculated venous SBE uses the selected standardized Van Slyke equation with normothermia
+  (37°C) assumed. It is not arterial SBE, actual whole-blood BE, or an analyzer-equivalence claim.
+  It inherits the provenance of its pH and blood-gas HCO3 operands. A reported actual/unknown BE
+  is echoed but never relabeled as standard BE.
+- The Farkas/Jörg component requires source-measured PvCO2, unit-explicit measured venous
+  saturation, and explicit same-sample confirmation. It never uses HH-derived PvCO2.
+- Known nonperipheral specimen, non-upper-extremity draw, poor perfusion/hemodynamic instability,
+  recent major treatment/ventilation change, or material preanalytic concern withholds the
+  estimate. Same-sample NO withholds it; UNKNOWN requires confirmation.
+- Unknown specimen/site/clinical context may permit a prominently marked applicability-uncertain
+  estimate. Unknown does not become favorable. External evaluation describes the method,
+  not proof that the current supplied context is within the evaluated population.
+- The displayed agreement range is deterministic, not a patient-specific probability interval.
+  Unknown oxygen uses the existing conservative profile. No endpoints are clamped.
+- Serum total CO2 is distinct from blood-gas HCO3. AG and albumin-corrected AG are numerical
+  calculations without universal laboratory-normal thresholds. Na−Cl is a descriptive surrogate.
+- Venous Stewart partition requires measured venous pH, reported or calculable venous SBE,
+  Na, Cl, albumin, and an explicit same-timepoint relationship. Lactate is optional. Calculated
+  SBE remains a derived operand in the partition and carries its normothermia limitation.
+- Categorical PvCO2 screening is not configured. Screening, prediction, compensation
+  classification, and management equivalence are separate claims.
 
-## Input lanes
+## Unavailable inferences
 
-The Explorer keeps four lanes separate:
+The app does not infer arterial pH, arterial oxygenation, PaO2, A–a gradient, P/F ratio, tissue
+hypoxia, oxygen extraction, arterial SBE, or a complete arterial acid–base state. Chemistry cannot
+supply current PaCO2. Missing data or a failed numerical calculation cannot erase independent
+available results. Next-input descriptions explain information gained without directing care.
 
-- observed and algebraically completed current VBG values;
-- an optional modeled arterial pH–PaCO₂ sensitivity region;
-- current serum-chemistry context; and
-- one optional prior observation as longitudinal context.
+Population agreement summaries do not define an individual conversion or joint arterial region.
+Prior-observation interpretation was deferred in v0.3; its removal does not disprove the value
+of appropriately studied longitudinal information.
 
-Absence or refusal of one lane must not erase valid information from another lane.
+## Privacy and public availability
 
-Any two of current pH, PvCO₂, and blood-gas HCO₃ are sufficient for venous-gas completion. The
-result identifies which coordinates were supplied and which were derived. Its venous pH reference
-orientation is descriptive only; it is not a Boston ruleset classification applied directly to a
-VBG.
+Calculations are static, client-side, and nonpersistent. No entered values enter URLs, logs,
+telemetry, browser storage, exports, or a calculation backend. Initial asset requests are ordinary
+same-origin HTTPS requests and may have hosting/security logs without entered form values.
 
-## Candidate arterial region
-
-The generic candidate region uses a published-agreement sensitivity scenario for pH and PaCO₂
-after any two-of-three venous-gas completion. It is not an individual correction, prediction
-interval, arterial measurement, or claim of VBG–ABG interchangeability. The generic pH component
-is retained for every available candidate region. The generic PaCO₂ component is replaced only by
-the narrowly gated Farkas/Jörg **PaCO₂ component**, never by a Farkas pH component.
-
-Known central, mixed, or capillary specimen types; known central or pulmonary-artery catheter
-draw sites; or `YES` for poor perfusion/hemodynamic instability, recent major ventilation/treatment
-change, or material preanalytic concern suppress the arterial sensitivity region. These fields
-deliberately have no newly invented blood-pressure, lactate, tourniquet, delay, or treatment-time
-threshold.
-
-Unknown specimen, draw site, or the three clinical-condition fields is not favorable context. It
-does not enable the gated PaCO₂ upgrade, but it may leave the generic scenario available with
-explicit warnings and an unknown-applicability limitation. A nonpositive or nonfinite generic
-endpoint is a model-domain refusal; the Explorer does not clamp an endpoint because that could
-shrink the sensitivity region and create a false exclusion.
-
-The PaCO₂ upgrade requires all of the following: same-sample venous oxygen saturation with an
-explicit unit, peripheral venous specimen type, upper-extremity peripheral draw site, and `NO` for
-each of poor perfusion/hemodynamic instability, recent major ventilation/treatment change, and
-material preanalytic concern. Supplemental oxygen can be `YES`, `NO`, or `UNKNOWN`; it selects the
-recorded PaCO₂ profile and is not an oxygenation calculation. If the PaCO₂ axis was
-Henderson–Hasselbalch derived, it does not receive the external-evaluation label.
-
-An unavailable candidate region is not a claim that the observed VBG or chemistry is invalid. It
-only withholds model-dependent arterial conclusions.
-
-## Set-valued output
-
-When a candidate region is available, the Explorer evaluates both named chronicity branches and
-uses certified terminal-path feasibility to enumerate every compatible state of the retained
-software ruleset. It never chooses a headline diagnosis from a point estimate or from the number
-of rendered visual samples.
-
-Conclusions use only the predicates defined in
-[the interpretation specification](INTERPRETATION_SPEC.md). “Excluded” always means excluded
-within the stated modeled state space; it never means globally excluded for the person.
-
-## Chemistry and prior observations
-
-Every current chemistry field is optional. Serum total CO₂ is serum chemistry, not blood-gas HCO₃.
-The Explorer does not invert it into current PaCO₂ or use it to hard-filter the candidate arterial
-state set. It calculates serum anion gap only when sodium, chloride, and serum total CO₂ are all
-supplied, and optional albumin-corrected context only when albumin is also supplied. A full Stewart
-partition requires supplied venous pH, venous base excess, albumin, sodium/chloride, and
-same-clinical-timepoint chemistry; it is labelled `VENOUS_BASIS` and does not infer arterial SBE.
-
-A prior ABG may be displayed as historical arterial context. A prior VBG remains venous, and a
-prior serum total-CO₂ value remains chemistry. One prior observation cannot prove chronicity,
-exclude acute-on-chronic disease, or automatically narrow the current model.
-
-## Prohibited inferences
-
-The Explorer does not estimate or infer PaO₂, arterial oxygen saturation, A–a gradient, P/F ratio,
-tissue hypoxia, oxygen extraction, arterial SBE, analyzer equivalence, VBG–ABG interchangeability,
-or management equivalence.
-
-## Privacy
-
-The browser is static and client-side. It does not persist entered values to a URL, browser
-storage, telemetry service, calculation backend, or export. GitHub Pages still receives ordinary
-same-origin page and asset requests; application code does not place entered values in those
-requests. Users must not enter PHI or real patient data.
-
-## Release claim boundary
-
-Version `0.2.0` is the current public research preview, deployed from the same reviewed `main`
-commit identified by its release manifest. The historic `v0.1.0` preview and the current preview
-establish reproducible implementations and documented software contracts only; neither establishes
-clinical accuracy, safety, utility, generalizability, diagnostic performance, patient benefit,
-regulatory status, or management equivalence. Any future clinical evaluation requires a separately
-governed study and must not be inferred from the synthetic verification suite.
+No validated local end-to-end VBG algorithm exists. Software checks and the public research
+preview do not establish clinical performance, approval, intended clinical use, or management
+safety. Source and Pages publication remains bound to the same reviewed commit.
