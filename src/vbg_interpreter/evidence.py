@@ -3,12 +3,28 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 from vbg_interpreter.models import Calculation, CalculationStatus
 
 MMHG_PER_KPA = 7.500616827041697
 PACO2_CONSERVATIVE_ERRORS = (-8.74, 9.20)
 METHODS = {
+    "usual_tissue_transit_direction_v1": {
+        "evidence_tier": "CONDITIONAL_PHYSIOLOGY_MODEL",
+        "description": (
+            "Under usual tissue transit: pHa ≥ pHv and 0 < PaCO2 ≤ PvCO2; applicability unassessed."
+        ),
+        "sources": ["docs/EVIDENCE.md#conditional-physiology"],
+    },
+    "bmp_gas_hco3_difference_v1": {
+        "evidence_tier": "DESCRIPTIVE_COMPARISON",
+        "description": (
+            "BMP HCO3 minus venous gas-basis HCO3; absolute difference >10 mmol/L "
+            "is a warning heuristic."
+        ),
+        "sources": ["docs/EVIDENCE.md#serum-chemistry"],
+    },
     "fixed_ph_offset_v1": {
         "evidence_tier": "OWNER_SELECTED_HEURISTIC",
         "description": "Estimated arterial pH = measured venous pH + 0.04; rough fixed correction.",
@@ -120,4 +136,28 @@ def calculation(
         limitations=tuple(dict.fromkeys((*outside, *limitations))),
         missing_inputs=missing,
         applicability=applicability,
+    )
+
+
+def dependency_failure(*dependencies):
+    """Select a typed dependency failure before any value dereference."""
+    for status in (
+        CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT,
+        CalculationStatus.UNAVAILABLE_OUTSIDE_SCOPE,
+        CalculationStatus.MODEL_DOMAIN_REFUSAL,
+        CalculationStatus.UNAVAILABLE_MISSING_INPUT,
+    ):
+        for dependency in dependencies:
+            if dependency.status is status:
+                return dependency
+    return None
+
+
+def propagate_failure(result: Calculation, dependency) -> Calculation:
+    return replace(
+        result,
+        status=dependency.status,
+        values={},
+        missing_inputs=dependency.missing_inputs,
+        limitations=tuple(dict.fromkeys((*result.limitations, *dependency.limitations))),
     )

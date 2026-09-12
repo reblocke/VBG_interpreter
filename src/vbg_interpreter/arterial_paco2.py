@@ -1,7 +1,7 @@
 """Measured-source arterial estimates with explicit, unassessed applicability."""
 
 from vbg_interpreter.evidence import PACO2_CONSERVATIVE_ERRORS, calculation
-from vbg_interpreter.models import Calculation, VbgExplorerRequest
+from vbg_interpreter.models import Calculation, SampleType, VbgExplorerRequest
 from vbg_interpreter.normalize import normalize_pco2_to_mmhg
 
 APPLICABILITY = "APPLICABILITY_UNASSESSED"
@@ -28,10 +28,18 @@ def estimate_arterial_ph(request: VbgExplorerRequest) -> Calculation:
 def estimate_arterial_paco2(request: VbgExplorerRequest) -> Calculation:
     """Only the supplied PvCO2 enters either method; saturation selects Farkas."""
     source = request.current_vbg
-    saturation = source.venous_o2_saturation
+    saturation = (
+        source.venous_o2_saturation if source.sample_type is SampleType.PERIPHERAL else None
+    )
     method = "fixed_paco2_offset_v1" if saturation is None else "farkas_simplified_93_v1"
     origins = {} if source.pco2 is None else {"pco2": "MEASURED_OR_REPORTED_VENOUS"}
+    origins["sample_type"] = source.sample_type.value
     limits = (CONTEXT_LIMIT,)
+    if source.venous_o2_saturation is not None and saturation is None:
+        limits += (
+            f"Sample: {source.sample_type.value.lower()}. Peripheral Farkas was not applied; "
+            "the fixed −5 mmHg heuristic was selected.",
+        )
     if saturation is None:
         limits += ("Rough fixed CO2 correction (−5 mmHg); no individual uncertainty interval.",)
     else:

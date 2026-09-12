@@ -10,15 +10,19 @@
     "venous_o2_saturation": {
       "value": "75.0",
       "unit": "PERCENTAGE_POINTS"
-    }
+    },
+    "sample_type": "PERIPHERAL"
   },
   "current_chemistry": {
     "sodium_mmol_l": "140.0",
     "chloride_mmol_l": "105.0",
     "serum_total_co2_mmol_l": "24.0",
-    "albumin_g_l": "40.0",
     "lactate_mmol_l": "2.0",
-    "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT"
+    "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT",
+    "albumin": {
+      "value": "40.0",
+      "unit": "g/L"
+    }
   },
-  "schema_version": "vbg_explorer_request/4.0"
+  "schema_version": "vbg_explorer_request/5.0"
 }

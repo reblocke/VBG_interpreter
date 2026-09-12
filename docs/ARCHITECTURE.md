@@ -1,23 +1,25 @@
 # Architecture
 
-The v0.4 Explorer is one static research/educational app with one public Python interpretation
+The v0.5 Explorer is one static research/educational app with one public Python interpretation
 entry point, `vbg_interpreter.interpret_vbg`. Python determines capability availability;
 JavaScript validates input shape and renders the result without repeating scientific inference.
 
 ## Data flow
 
-A strict `vbg_explorer_request/4.0` contains current VBG values and optional current chemistry. At least one VBG value is required. Each dependent calculation handles missing
+A strict `vbg_explorer_request/5.0` contains current VBG values and optional current chemistry. At least one VBG value is required. Each dependent calculation handles missing
 operands, known scope exclusions, and numerical-domain refusal locally. Results use
-`vbg_explorer_result/4.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
+`vbg_explorer_result/5.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
 
 - `models.py` defines compact input/result contracts. `mapping.py` preserves the strict JSON
   boundary, including decimal strings, exact keys, explicit units, and duplicate rejection.
 - `venous_gas.py` echoes source measurements, completes missing gas coordinates using HH, and
   selects reported standard base excess or calculates venous-basis SBE with the approved
   normothermic Van Slyke equation.
-- `arterial_paco2.py` reads measured pH/PvCO2 and optional same-sample saturation. It selects fixed offsets or Farkas, with unassessed applicability.
+- `arterial_paco2.py` reads measured pH/PvCO2 and optional same-sample saturation. It selects Farkas only for explicit peripheral samples; central/unknown uses fixed CO2. Applicability remains unassessed.
 - `best_guess.py` calculates modeled arterial bicarbonate and calls the pinned Boston helper using a four-attribute gas-only adapter. It never fabricates BE/chemistry or infers chronicity.
 - `chemistry.py` computes serum AG, corrected AG, Na−Cl, and the optional venous Stewart partition.
+- `observations.py` owns warning-only input sanity; `physiology.py` produces measured-axis conditional directions for both prose and shading.
+- `narrative.py` assembles the two-paragraph summary from calculations, direction metadata and sensitivity; no independent classification engine.
 - `screening.py` returns `NOT_CONFIGURED`; no categorical threshold is installed.
 - `information.py` ranks at most three next-input descriptions with a deterministic interface
   heuristic, not a claim of measured diagnostic information gain.

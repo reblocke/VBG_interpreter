@@ -8,6 +8,8 @@ import pytest
 from vbg_interpreter.browser_adapter import interpret_browser_request_json
 from vbg_interpreter.mapping import request_from_json, request_from_mapping
 from vbg_interpreter.models import (
+    AlbuminInput,
+    AlbuminUnit,
     BaseExcessBasis,
     CurrentChemistry,
     CurrentVbg,
@@ -27,6 +29,9 @@ def wire_request(request=None):
     if saturation:
         saturation.pop("normalized_percentage_points")
 
+    if data["current_chemistry"]["albumin"]:
+        data["current_chemistry"]["albumin"].pop("normalized_g_l")
+
     def decimals(value):
         if isinstance(value, dict):
             return {k: decimals(v) for k, v in value.items()}
@@ -41,7 +46,7 @@ def test_strict_mapping_and_browser_adapter():
     payload = wire_request()
     assert request_from_mapping(payload).current_vbg.ph == 7.32
     response = json.loads(interpret_browser_request_json(json.dumps(payload)))
-    assert response["result"]["software_version"] == "0.4.0"
+    assert response["result"]["software_version"] == "0.5.0"
     assert response["result"]["venous_gas"]["measured_values"]["ph"]["value"] == 7.32
 
 
@@ -93,7 +98,10 @@ def test_units_and_context_types_are_explicit():
         CurrentVbg(ph=7.32, base_excess_basis=BaseExcessBasis.STANDARD)
     assert CurrentVbg(base_excess_mmol_l=0).base_excess_mmol_l == 0
     assert CurrentVbg(hco3_mmol_l=24, hco3_basis=Hco3Basis.UNKNOWN).hco3_mmol_l == 24
-    assert CurrentChemistry(albumin_g_l=0, lactate_mmol_l=0).albumin_g_l == 0
+    assert (
+        CurrentChemistry(albumin=AlbuminInput(0, AlbuminUnit.G_L), lactate_mmol_l=0).albumin_g_l
+        == 0
+    )
 
 
 def test_saturation_wire_preserves_units_without_extra_confirmation():
@@ -139,7 +147,7 @@ def test_documented_synthetic_wire_example_matches_public_result():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2] / "docs/examples"
-    actual = json.loads(interpret_browser_request_json((root / "request-v4.json").read_text()))[
+    actual = json.loads(interpret_browser_request_json((root / "request-v5.json").read_text()))[
         "result"
     ]
-    assert actual == json.loads((root / "result-v4.json").read_text())
+    assert actual == json.loads((root / "result-v5.json").read_text())

@@ -1,3 +1,4 @@
+import { formatNumber } from "./format.js";
 // Display-only coordinates. Calculations and inference remain in Python.
 const NS = "http://www.w3.org/2000/svg";
 function svgNode(tag, attrs, text) {
@@ -11,11 +12,7 @@ function html(tag, text) {
   el.textContent = text;
   return el;
 }
-function number(value) {
-  return Math.abs(value) >= 1e5 || (value !== 0 && Math.abs(value) < 0.001)
-    ? value.toExponential(2)
-    : value.toLocaleString("en-US", { maximumFractionDigits: 3 });
-}
+const number = formatNumber;
 function paddedRange(values, low, high) {
   const finite = values.filter(Number.isFinite);
   const min = Math.min(low, ...finite),
@@ -36,17 +33,22 @@ function midpoint([low, high]) {
 }
 
 export function renderCoordinatePlots(result) {
-  const measured = result.venous_gas.measured_values;
+  const direction = result.physiology_direction;
+  const axes = direction.axes;
   const pH = result.arterial_ph_estimate,
     co2 = result.arterial_paco2_estimate;
-  // Venous display entries are normalized by Python; never reconstruct a source axis here.
+  const phBound = axes.ph.status === "AVAILABLE" ? axes.ph.bound : null;
+  const co2Bound = axes.pco2.status === "AVAILABLE" ? axes.pco2.bound : null;
   const known =
-    Number.isFinite(measured.ph?.value) &&
-    Number.isFinite(measured.pco2?.normalized_mmhg)
-      ? { ph: measured.ph.value, co2: measured.pco2.normalized_mmhg }
+    phBound !== null && co2Bound !== null
+      ? { ph: phBound, co2: co2Bound }
       : null;
+  // Warned arithmetic stays in the detail cards and cannot stretch the physiology viewport.
   const estimated =
-    pH.status === "AVAILABLE" && co2.status === "AVAILABLE"
+    phBound !== null &&
+    co2Bound !== null &&
+    pH.status === "AVAILABLE" &&
+    co2.status === "AVAILABLE"
       ? {
           ph: pH.values.ph,
           co2: co2.values.point,
@@ -54,12 +56,13 @@ export function renderCoordinatePlots(result) {
           upper: co2.values.upper,
         }
       : null;
-  const xRange = paddedRange([known?.ph, estimated?.ph], 7, 7.8);
+  const xRange = paddedRange([phBound, estimated?.ph], 7, 7.8);
   const yRange = paddedRange(
-    [known?.co2, estimated?.co2, estimated?.lower, estimated?.upper],
+    [co2Bound, estimated?.co2, estimated?.lower, estimated?.upper],
     20,
     80,
   );
+  yRange[0] = Math.max(0, yRange[0]);
   draw(
     "known-plot",
     "Measured venous coordinates",
@@ -67,6 +70,7 @@ export function renderCoordinatePlots(result) {
     xRange,
     yRange,
     "measured",
+    direction,
   );
   draw(
     "estimated-plot",
@@ -75,23 +79,29 @@ export function renderCoordinatePlots(result) {
     xRange,
     yRange,
     "estimated",
+    null,
   );
 }
-function draw(id, title, point, xr, yr, kind) {
+function draw(id, title, point, xr, yr, kind, direction) {
   const parent = document.getElementById(id);
   parent.replaceChildren();
-  if (!point) {
+  const partial =
+    direction &&
+    Object.values(direction.axes).some((a) => a.status === "AVAILABLE");
+  if (!point && !partial) {
     parent.append(
       html(
         "p",
         kind === "measured"
-          ? "Coordinate display requires both measured venous pH and PvCO₂. Available values remain below."
+          ? "No usable measured coordinate is available for a physiology display. Available values remain below."
           : "Coordinate display requires both available arterial estimates. Available estimates remain below.",
       ),
     );
     return;
   }
-  const description = `${title}: pH ${number(point.ph)}, CO₂ ${number(point.co2)} mmHg.`;
+  const description = point
+    ? `${title}: pH ${number(point.ph, "ph")}, CO₂ ${number(point.co2)} mmHg.`
+    : "Partial measured coordinates; no paired point is inferred.";
   const figure = document.createElement("figure");
   figure.className = `coordinate-figure ${kind}`;
   const caption = html("figcaption", description);
@@ -100,7 +110,9 @@ function draw(id, title, point, xr, yr, kind) {
     viewBox: "0 0 400 350",
     role: "img",
     "aria-labelledby": `${id}-caption`,
-    "aria-describedby": `${id}-description`,
+    "aria-describedby": direction
+      ? `${id}-description ${id}-model-description`
+      : `${id}-description`,
     "data-x-min": xr[0],
     "data-x-max": xr[1],
     "data-y-min": yr[0],
@@ -117,6 +129,77 @@ function draw(id, title, point, xr, yr, kind) {
       class: "plot-frame",
     }),
   );
+  if (direction) {
+    const ph = direction.axes.ph.bound,
+      co2 = direction.axes.pco2.bound;
+    const left = ph === null ? 65 : x(ph),
+      top = co2 === null ? 40 : y(co2);
+    const defs = svgNode("defs", {});
+    const pattern = svgNode("pattern", {
+      id: `${id}-hatch`,
+      width: 14,
+      height: 14,
+      patternUnits: "userSpaceOnUse",
+    });
+    pattern.append(
+      svgNode("path", {
+        d: "M-3,3 L3,-3 M0,14 L14,0 M11,17 L17,11",
+        class: "direction-hatch",
+      }),
+    );
+    defs.append(pattern);
+    svg.append(defs);
+    const bounds = { x: left, y: top, width: 370 - left, height: 290 - top };
+    svg.append(
+      svgNode("rect", { ...bounds, class: "direction-fill" }),
+      svgNode("rect", {
+        ...bounds,
+        fill: `url(#${id}-hatch)`,
+        class: "direction-region",
+      }),
+    );
+    if (ph !== null)
+      svg.append(
+        svgNode("line", {
+          x1: left,
+          x2: left,
+          y1: 40,
+          y2: 290,
+          class: "direction-guide",
+        }),
+      );
+    if (co2 !== null)
+      svg.append(
+        svgNode("line", {
+          x1: 65,
+          x2: 370,
+          y1: top,
+          y2: top,
+          class: "direction-guide",
+        }),
+      );
+    // Open arrowheads express continuation, not a new numerical bound.
+    if (ph !== null) {
+      const middleY = (top + 290) / 2;
+      svg.append(
+        svgNode("path", {
+          d: `M356,${middleY} H379 M373,${middleY - 5} L379,${middleY} L373,${middleY + 5}`,
+          class: "direction-arrow",
+          "data-direction": "higher-ph",
+        }),
+      );
+    }
+    if (co2 !== null && yr[0] > 0) {
+      const middleX = (left + 370) / 2;
+      svg.append(
+        svgNode("path", {
+          d: `M${middleX},276 V299 M${middleX - 5},293 L${middleX},299 L${middleX + 5},293`,
+          class: "direction-arrow",
+          "data-direction": "lower-co2",
+        }),
+      );
+    }
+  }
   svg.append(
     svgNode("line", {
       x1: x(7.4),
@@ -138,7 +221,7 @@ function draw(id, title, point, xr, yr, kind) {
       svgNode(
         "text",
         { x: x(v), y: 312, "text-anchor": "middle", class: "plot-tick" },
-        number(v),
+        number(v, "ph"),
       ),
     );
   }
@@ -159,7 +242,7 @@ function draw(id, title, point, xr, yr, kind) {
     ),
     svgNode("text", { x: 65, y: 22, class: "plot-axis" }, "CO₂ (mmHg)"),
   );
-  if (Number.isFinite(point.lower) && Number.isFinite(point.upper)) {
+  if (point && Number.isFinite(point.lower) && Number.isFinite(point.upper)) {
     svg.append(
       svgNode("line", {
         x1: x(point.ph),
@@ -180,34 +263,41 @@ function draw(id, title, point, xr, yr, kind) {
         }),
       );
   }
-  svg.append(
-    svgNode(
-      kind === "measured" ? "circle" : "rect",
-      kind === "measured"
-        ? { cx: x(point.ph), cy: y(point.co2), r: 6, class: "coordinate-point" }
-        : {
-            x: x(point.ph) - 6,
-            y: y(point.co2) - 6,
-            width: 12,
-            height: 12,
-            class: "coordinate-point",
-          },
-    ),
-  );
-  // Full point coordinates remain in the wrapping caption at all widths and text sizes.
-  const right = fraction(point.ph, xr) > 0.5;
-  svg.append(
-    svgNode(
-      "text",
-      {
-        x: x(point.ph) + (right ? -11 : 11),
-        y: y(point.co2) - 12,
-        "text-anchor": right ? "end" : "start",
-        class: "point-label",
-      },
-      `${number(point.ph)}, ${number(point.co2)}`,
-    ),
-  );
+  if (point) {
+    svg.append(
+      svgNode(
+        kind === "measured" ? "circle" : "rect",
+        kind === "measured"
+          ? {
+              cx: x(point.ph),
+              cy: y(point.co2),
+              r: 6,
+              class: "coordinate-point",
+            }
+          : {
+              x: x(point.ph) - 6,
+              y: y(point.co2) - 6,
+              width: 12,
+              height: 12,
+              class: "coordinate-point",
+            },
+      ),
+    );
+    // Full point coordinates remain in the wrapping caption at all widths and text sizes.
+    const right = fraction(point.ph, xr) > 0.5;
+    svg.append(
+      svgNode(
+        "text",
+        {
+          x: x(point.ph) + (right ? -11 : 11),
+          y: y(point.co2) - 12,
+          "text-anchor": right ? "end" : "start",
+          class: "point-label",
+        },
+        `${number(point.ph, "ph")}, ${number(point.co2)}`,
+      ),
+    );
+  }
   const detail = html(
     "p",
     "Reference cross: pH 7.40 / CO₂ 40 mmHg. Left/right: lower/higher pH; below/above: lower/higher CO₂. These shared coordinates are not validated venous cutoffs or diagnostic quadrants.",
@@ -215,11 +305,32 @@ function draw(id, title, point, xr, yr, kind) {
   detail.id = `${id}-description`;
   detail.className = "limitation";
   figure.append(caption, svg, detail);
-  if (Number.isFinite(point.lower))
+  if (direction) {
+    const modelText = html(
+      "p",
+      direction.assumption +
+        " " +
+        direction.summary +
+        " " +
+        direction.limitations.join(" "),
+    );
+    modelText.id = `${id}-model-description`;
+    modelText.className = "visually-hidden";
+    figure.append(modelText);
+    figure.append(
+      html("p", direction.caption),
+      html("p", direction.summary),
+      html(
+        "p",
+        "Light hatching shows the conditional direction; short-dashed guides include equality. Unshaded space is not clinically ruled out.",
+      ),
+    );
+  }
+  if (point && Number.isFinite(point.lower))
     figure.append(
       html(
         "p",
-        `Vertical whisker: Farkas agreement range ${number(point.lower)}–${number(point.upper)} mmHg; no pH or joint uncertainty region.`,
+        `Vertical whisker: Farkas agreement range ${number(point.lower)}–${number(point.upper)} mmHg. CO₂ agreement only; pH uncertainty is not quantified.`,
       ),
     );
   parent.append(figure);

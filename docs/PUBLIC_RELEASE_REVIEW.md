@@ -116,3 +116,14 @@ provisional point-based Boston assessment, two coordinate displays, questionnair
 warning consolidation. Component and combined-workflow evidence boundaries are documented in
 EVIDENCE.md and CLINICAL_SCOPE.md. No release tag, clinical validation or new rights opinion is
 claimed. Earlier supplements are historical records, not the current v4 behavior specification.
+
+
+## v0.5.0 source and Pages publication supplement — 2026-09-12
+
+The owner approved the physiology narrative and shading implementation plan, including normal
+CI-gated PR merge, exact-commit Pages verification and return to one clean main checkout.
+The change adds only the sample selector, explicit albumin units, warning observations, conditional
+physiology, sensitivity and discrepancy communication described in ADR 0006. It preserves the
+pinned upstream rules, static privacy boundary, footer warning and method evidence box. No tag,
+GitHub Release, patient validation, clinical coverage or new legal opinion is authorized or claimed.
+Earlier supplements remain historical. The reviewed PR and Pages manifest identify final source.

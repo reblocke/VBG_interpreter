@@ -1,6 +1,6 @@
 # Clinical scope
 
-Version 0.4.0 is the current public research preview. It presents reported venous measurements,
+Version 0.5.0 is the current public research preview. It presents reported venous measurements,
 algebraic calculations, serum chemistry, and caveated arterial estimates with a provisional compensation assessment. It is not
 clinically validated, not medical advice, and not a medical device. It must not be used to
 diagnose, treat, triage, or replace an arterial blood gas when arterial confirmation is required.
@@ -20,10 +20,10 @@ Use synthetic values only; do not enter PHI or real patient data.
   is echoed but never relabeled as standard BE.
 - Fixed arterial estimates use the owner-selected pH +0.04 and PvCO2 −5 mmHg heuristics.
   These are rough point estimates, not individual validated conversions or intervals.
-- Same-sample venous saturation automatically selects Farkas for PaCO2, while pH keeps its
+- Same-sample venous saturation with explicitly peripheral sample type selects Farkas for PaCO2, while pH keeps its
   fixed correction. SpO2 and PO2 are not accepted substitutes. Only measured source coordinates
   enter the models; HH-derived venous coordinates do not become independent measurements.
-- Specimen/site, perfusion, treatment-change and preanalytic context are not collected. Every
+- Only Peripheral / Central / Unknown sample identity is collected; perfusion, treatment-change and preanalytic context are not collected. Every
   estimate is labeled applicability-unassessed; the app does not establish favorable conditions.
 - Farkas retains the conservative published oxygen-profile agreement bounds. They are not
   patient-specific probability intervals, and do not establish joint pH/CO2 coverage. Invalid
@@ -61,3 +61,11 @@ same-origin HTTPS requests and may have hosting/security logs without entered fo
 No validated local end-to-end VBG algorithm exists. Software checks and the public research
 preview do not establish clinical performance, approval, intended clinical use, or management
 safety. Source and Pages publication remains bound to the same reviewed commit.
+
+
+Conditional tissue-transit shading is an illustrative model with unverified assumptions, not a
+guaranteed individual bound, confidence region or diagnosis heatmap. Central and peripheral may
+show it; Unknown explicitly labels the systemic-venous assumption. Unshaded space is not ruled
+out. Deterministic CO2 sensitivity tests three examples, holds pH fixed, and establishes neither
+probability nor full robustness. Input sanity and >10 mmol/L BMP–gas discrepancy warnings are
+software heuristics, not diagnostic thresholds; no confirmation or clinical questionnaire is added.

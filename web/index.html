@@ -19,7 +19,7 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
-      <p class="eyebrow">Research / educational software · v0.4</p>
+      <p class="eyebrow">Research / educational software · v0.5</p>
       <h1>VBG Acid–Base Explorer</h1>
       <p class="lede">
         Enter the VBG and chemistry values you have. See what those inputs
@@ -55,10 +55,18 @@
               <p>
                 Enter at least one value. Any two of pH, PvCO₂, and blood-gas
                 HCO₃ allow algebraic completion. Measured pH and PvCO₂ also
-                enable a best-guess arterial interpretation; optional saturation
-                switches the CO₂ estimate to Farkas.
+                enable a best-guess arterial interpretation. Same-sample
+                saturation selects Farkas only for an explicitly peripheral
+                sample.
               </p>
               <div class="field-grid">
+                <label for="sample-type"
+                  >Sample type<select id="sample-type" name="sample-type">
+                    <option value="UNKNOWN">Unknown</option>
+                    <option value="PERIPHERAL">Peripheral</option>
+                    <option value="CENTRAL">Central</option>
+                  </select></label
+                >
                 <label for="current-ph"
                   >Measured venous pH<input
                     id="current-ph"
@@ -83,9 +91,10 @@
                     <option value="kPa">kPa</option>
                   </select></label
                 ><label for="current-hco3"
-                  >Blood-gas HCO₃ <small>mmol/L</small
+                  >Blood gas HCO₃ <small>mmol/L</small
                   ><input
                     id="current-hco3"
+                    aria-describedby="gas-hco3-help"
                     name="current-hco3"
                     inputmode="decimal"
                     autocomplete="off" /></label
@@ -133,10 +142,14 @@
                   </select></label
                 >
               </div>
+              <p id="gas-hco3-help" class="field-note">
+                Blood gas HCO₃ is the actual bicarbonate reported or calculated
+                for this gas, not standardized bicarbonate.
+              </p>
               <p class="field-note">
                 If reported standard base excess is absent, sufficient gas
                 values enable calculated venous SBE, assuming normothermia
-                (37°C).
+                (37°C). Same-sample venous saturation is not SpO₂ or PO₂.
               </p>
             </fieldset>
             <fieldset>
@@ -162,19 +175,25 @@
                     inputmode="decimal"
                     autocomplete="off" /></label
                 ><label for="serum-total-co2"
-                  >Serum total CO₂ <small>mmol/L</small
+                  >BMP HCO₃ <small>mmol/L</small
                   ><input
                     id="serum-total-co2"
+                    aria-describedby="bmp-hco3-help"
                     name="serum-total-co2"
                     inputmode="decimal"
                     autocomplete="off" /></label
                 ><label for="albumin"
-                  >Albumin <small>g/L</small
+                  >Albumin <small>explicit unit</small
                   ><input
                     id="albumin"
                     name="albumin"
                     inputmode="decimal"
                     autocomplete="off" /></label
+                ><label for="albumin-unit"
+                  >Albumin unit<select id="albumin-unit" name="albumin-unit">
+                    <option value="g/L">g/L</option>
+                    <option value="g/dL">g/dL</option>
+                  </select></label
                 ><label for="lactate"
                   >Lactate <small>mmol/L</small
                   ><input
@@ -197,9 +216,9 @@
                   </select></label
                 >
               </div>
-              <p class="field-note">
-                Serum total CO₂ is distinct from blood-gas HCO₃. Lactate remains
-                a measured chemistry value.
+              <p id="bmp-hco3-help" class="field-note">
+                BMP HCO₃ means BMP/CMP chemistry total CO₂, distinct from Blood
+                gas HCO₃. Lactate remains a measured chemistry value.
               </p>
             </fieldset>
             <p
@@ -224,6 +243,11 @@
           aria-label="Interpretation results"
           hidden
         >
+          <section class="panel" aria-labelledby="summary-heading">
+            <h2 id="summary-heading">Interpretation summary</h2>
+            <div id="input-observations"></div>
+            <div id="narrative-content"></div>
+          </section>
           <div class="result-comparison">
             <section class="panel" aria-labelledby="known-heading">
               <h2 id="known-heading">What’s known</h2>
@@ -250,7 +274,7 @@
           <section class="panel" aria-labelledby="uncertainty-heading">
             <h2 id="uncertainty-heading">What remains uncertain</h2>
             <ul id="uncertainty-content"></ul>
-            <h3>Most useful additional information</h3>
+            <h3>Useful additional inputs</h3>
             <ol id="next-inputs"></ol>
           </section>
           <details class="panel" id="methods-card">
@@ -273,7 +297,7 @@
         ordinary same-origin hosting requests.
       </p>
       <p>
-        Public research preview v0.4.0.
+        Public research preview v0.5.0.
         <a href="https://github.com/reblocke/VBG_interpreter"
           >Source and methods</a
         >.

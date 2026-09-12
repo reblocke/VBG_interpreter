@@ -4,7 +4,7 @@ import {
 } from "./js/explorer-rendering.js";
 import { createWorkerClient } from "./js/worker-client.js";
 
-const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/4.0";
+const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/5.0";
 const DECIMAL_STRING = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 
 class BrowserInputError extends Error {}
@@ -103,6 +103,7 @@ function collectCurrentVbg() {
     throw new BrowserInputError("Provide at least one current VBG value.");
   }
   return {
+    sample_type: selectValue("sample-type"),
     ph,
     pco2,
     pco2_unit: pco2 === null ? null : selectValue("current-pco2-unit"),
@@ -122,14 +123,18 @@ function collectCurrentVbg() {
 }
 
 function collectCurrentChemistry() {
+  const albumin = optionalDecimalString("albumin", "Albumin");
   return {
     sodium_mmol_l: optionalDecimalString("sodium", "Sodium"),
     chloride_mmol_l: optionalDecimalString("chloride", "Chloride"),
     serum_total_co2_mmol_l: optionalDecimalString(
       "serum-total-co2",
-      "Serum total CO2",
+      "BMP HCO3",
     ),
-    albumin_g_l: optionalDecimalString("albumin", "Albumin"),
+    albumin:
+      albumin === null
+        ? null
+        : { value: albumin, unit: selectValue("albumin-unit") },
     lactate_mmol_l: optionalDecimalString("lactate", "Lactate"),
     relationship_to_vbg: selectValue("chemistry-relationship"),
   };
@@ -259,6 +264,10 @@ const workerClient = createWorkerClient({
 
 refs.form.addEventListener("submit", handleSubmit);
 refs.form.addEventListener("input", () => {
+  invalidateInterpretation();
+  syncConditionalFields();
+});
+refs.form.addEventListener("change", () => {
   invalidateInterpretation();
   syncConditionalFields();
 });
