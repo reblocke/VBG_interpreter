@@ -15,13 +15,17 @@ browser workflow or copy an upstream formula already exposed by the pinned depen
 - Keep measured venous, modeled arterial, calculated, and serum-chemistry values distinct.
 - Return partial results when a dependent lane cannot run; do not make the full request fail.
 - Treat unknown model context as unknown, never as favorable context.
-- Keep inference capability-based; no population-derived arterial rectangle or Boston state output.
+- Keep inference capability-based; no population-derived arterial rectangle or state enumeration.
+- Keep the Boston point assessment provisional and based only on the estimated arterial pair.
 - Do not assign probability meaning to deterministic agreement ranges.
 - Keep serum total CO₂ distinct from blood-gas HCO₃. Do not infer current PaCO₂ from chemistry.
 - Do not estimate arterial oxygenation, PaO₂, A–a gradient, P/F ratio, tissue hypoxia, oxygen
   extraction, or arterial SBE.
 - Keep measured gas coordinates, HH-derived coordinates, calculated venous SBE, and modeled
-  PaCO2 separate. Only measured PvCO2 with confirmed same-sample saturation enters the model.
+  arterial values separate. Only measured source coordinates enter the fixed/Farkas estimates.
+- Saturation is same-sample by field definition. Do not restore the clinical-context questionnaire;
+  applicability remains explicitly unassessed. BE stays optional.
+- Coordinate plots display results only; their reference cross is not a diagnostic boundary.
 - Standard BE may be reported or calculated with the approved Van Slyke method at assumed 37°C;
   retain its provenance in venous Stewart output. Actual/unknown BE is not automatically SBE.
 - Require measured venous pH and same-time chemistry for the Stewart partition.

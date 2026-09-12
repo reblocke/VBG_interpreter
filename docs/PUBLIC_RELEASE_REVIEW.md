@@ -107,3 +107,12 @@ arterial-SBE, analyzer-equivalence, patient-specific coverage, or clinical-valid
 Existing public-visibility, exact-source-commit, static/privacy, attribution, and synthetic-only
 verification requirements continue. Archived private history is preserved privately, never
 merged into the public lineage. The v0.1 and v0.2 publication records above remain historical.
+
+## v0.4.0 source and Pages publication supplement — 2026-09-12
+
+The owner approved implementation, CI-gated merge and exact-commit Pages verification of the
+known/best-guess plan. This adds the selected fixed offsets, automatic same-sample Farkas,
+provisional point-based Boston assessment, two coordinate displays, questionnaire removal and
+warning consolidation. Component and combined-workflow evidence boundaries are documented in
+EVIDENCE.md and CLINICAL_SCOPE.md. No release tag, clinical validation or new rights opinion is
+claimed. Earlier supplements are historical records, not the current v4 behavior specification.

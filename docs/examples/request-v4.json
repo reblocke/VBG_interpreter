@@ -1,0 +1,24 @@
+{
+  "current_vbg": {
+    "ph": "7.32",
+    "pco2": "55.0",
+    "pco2_unit": "mmHg",
+    "hco3_mmol_l": null,
+    "hco3_basis": "UNKNOWN",
+    "base_excess_mmol_l": null,
+    "base_excess_basis": "UNKNOWN",
+    "venous_o2_saturation": {
+      "value": "75.0",
+      "unit": "PERCENTAGE_POINTS"
+    }
+  },
+  "current_chemistry": {
+    "sodium_mmol_l": "140.0",
+    "chloride_mmol_l": "105.0",
+    "serum_total_co2_mmol_l": "24.0",
+    "albumin_g_l": "40.0",
+    "lactate_mmol_l": "2.0",
+    "relationship_to_vbg": "SAME_CLINICAL_TIMEPOINT"
+  },
+  "schema_version": "vbg_explorer_request/4.0"
+}

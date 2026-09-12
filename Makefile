@@ -21,7 +21,7 @@ e2e: build-web
 	uv run pytest -q -m e2e --browser chromium --tracing retain-on-failure --video retain-on-failure --screenshot only-on-failure --output test-results
 
 validation: build-web
-	uv run pytest -q tests/explorer/test_scientific_matrix.py
+	uv run pytest -q tests/explorer/test_scientific_matrix.py tests/explorer/test_best_guess.py
 
 verify:
 	uv run ruff format --check .

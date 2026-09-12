@@ -1,10 +1,8 @@
 """Deterministic interface priorities, not validated diagnostic information gain."""
 
-from vbg_interpreter.arterial_paco2 import known_blockers, unknown_context
 from vbg_interpreter.models import (
     Calculation,
     CalculationStatus,
-    TriState,
     VbgExplorerRequest,
     VenousGas,
 )
@@ -18,29 +16,11 @@ def highest_value_next_inputs(
 ) -> tuple[str, ...]:
     source = request.current_vbg
     candidates: list[str] = []
-    if not known_blockers(request):
-        if estimate.status is CalculationStatus.AVAILABLE and unknown_context(request):
-            candidates.append(
-                "Clarify specimen, draw site, and remaining perfusion/treatment/preanalytic "
-                "context to assess estimate applicability."
-            )
-        elif source.pco2 is not None and source.venous_o2_saturation is None:
-            candidates.append(
-                "Same-sample measured venous saturation, with its unit and confirmation, "
-                "would enable the PaCO2 estimate."
-            )
-        elif source.pco2 is None and source.venous_o2_saturation is not None:
-            candidates.append(
-                "Measured PvCO2 would add a source coordinate for the PaCO2 estimate; "
-                "same-sample confirmation is also required."
-            )
-        elif (
-            source.venous_o2_saturation is not None
-            and source.saturation_same_sample is TriState.UNKNOWN
-        ):
-            candidates.append(
-                "Confirm whether saturation is from the same sample before estimating PaCO2."
-            )
+    if source.pco2 is not None and source.venous_o2_saturation is None:
+        candidates.append(
+            "Same-sample venous saturation would switch the CO2 estimate from "
+            "the fixed correction to Farkas."
+        )
     core = sum(v is not None for v in (source.ph, source.pco2, source.hco3_mmol_l))
     if core < 2:
         if source.pco2 is not None:

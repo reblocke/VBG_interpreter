@@ -23,3 +23,5 @@ The owner also approved merging both outstanding dependency PRs, preserving old 
 verified backups, finishing with one active public-main checkout, and merging/deploying v0.3
 through protected main after review and checks. No tag, GitHub Release, private-history
 publication, or clinical-validation claim is included.
+
+The v0.4 estimate-selection and presentation revision is recorded in [ADR 0005](0005-known-best-guess-v4.md).

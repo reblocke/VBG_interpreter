@@ -16,7 +16,6 @@ from vbg_interpreter.models import (
     Pco2Unit,
     SaturationInput,
     SaturationUnit,
-    TriState,
     VbgExplorerRequest,
 )
 from vbg_interpreter.serialization import ExplorerSerializationError, to_json, to_primitive
@@ -42,7 +41,7 @@ def test_strict_mapping_and_browser_adapter():
     payload = wire_request()
     assert request_from_mapping(payload).current_vbg.ph == 7.32
     response = json.loads(interpret_browser_request_json(json.dumps(payload)))
-    assert response["result"]["software_version"] == "0.3.0"
+    assert response["result"]["software_version"] == "0.4.0"
     assert response["result"]["venous_gas"]["measured_values"]["ph"]["value"] == 7.32
 
 
@@ -91,28 +90,25 @@ def test_units_and_context_types_are_explicit():
     with pytest.raises(ExplorerInputError):
         SaturationInput(75, "%")
     with pytest.raises(ExplorerInputError):
-        CurrentVbg(ph=7.32, saturation_same_sample=TriState.YES)
-    with pytest.raises(ExplorerInputError):
         CurrentVbg(ph=7.32, base_excess_basis=BaseExcessBasis.STANDARD)
     assert CurrentVbg(base_excess_mmol_l=0).base_excess_mmol_l == 0
     assert CurrentVbg(hco3_mmol_l=24, hco3_basis=Hco3Basis.UNKNOWN).hco3_mmol_l == 24
     assert CurrentChemistry(albumin_g_l=0, lactate_mmol_l=0).albumin_g_l == 0
 
 
-def test_saturation_wire_preserves_units_and_confirmation():
+def test_saturation_wire_preserves_units_without_extra_confirmation():
     req = VbgExplorerRequest(
         CurrentVbg(
             pco2=7.3,
             pco2_unit=Pco2Unit.KPA,
             venous_o2_saturation=SaturationInput(0.75, SaturationUnit.FRACTION_0_TO_1),
-            saturation_same_sample=TriState.YES,
         )
     )
     parsed = request_from_json(json.dumps(wire_request(req)))
     assert parsed == req
 
 
-@pytest.mark.parametrize("location", [None, "current_vbg", "current_chemistry", "context"])
+@pytest.mark.parametrize("location", [None, "current_vbg", "current_chemistry"])
 def test_extra_fields_are_rejected(location):
     payload = wire_request()
     obj = payload if location is None else payload[location]
@@ -143,7 +139,7 @@ def test_documented_synthetic_wire_example_matches_public_result():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2] / "docs/examples"
-    actual = json.loads(interpret_browser_request_json((root / "request-v3.json").read_text()))[
+    actual = json.loads(interpret_browser_request_json((root / "request-v4.json").read_text()))[
         "result"
     ]
-    assert actual == json.loads((root / "result-v3.json").read_text())
+    assert actual == json.loads((root / "result-v4.json").read_text())

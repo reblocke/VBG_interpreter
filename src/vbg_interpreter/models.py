@@ -9,18 +9,12 @@ from enum import StrEnum
 from vbg_interpreter.serialization import to_primitive
 from vbg_interpreter.version import VERSION
 
-VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/3.0"
-VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/3.0"
+VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/4.0"
+VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/4.0"
 
 
 class ExplorerInputError(ValueError):
     """Raised when a typed explorer input is physically or structurally invalid."""
-
-
-class TriState(StrEnum):
-    YES = "YES"
-    NO = "NO"
-    UNKNOWN = "UNKNOWN"
 
 
 class Pco2Unit(StrEnum):
@@ -36,24 +30,6 @@ class SaturationUnit(StrEnum):
 class Hco3Basis(StrEnum):
     REPORTED = "REPORTED"
     CALCULATED = "CALCULATED"
-    UNKNOWN = "UNKNOWN"
-
-
-class SpecimenType(StrEnum):
-    PERIPHERAL_VENOUS = "PERIPHERAL_VENOUS"
-    CENTRAL_VENOUS = "CENTRAL_VENOUS"
-    MIXED_VENOUS = "MIXED_VENOUS"
-    CAPILLARY = "CAPILLARY"
-    UNKNOWN = "UNKNOWN"
-
-
-class DrawSite(StrEnum):
-    UPPER_EXTREMITY_PERIPHERAL = "UPPER_EXTREMITY_PERIPHERAL"
-    LOWER_EXTREMITY_PERIPHERAL = "LOWER_EXTREMITY_PERIPHERAL"
-    FEMORAL = "FEMORAL"
-    CENTRAL_CATHETER = "CENTRAL_CATHETER"
-    PULMONARY_ARTERY_CATHETER = "PULMONARY_ARTERY_CATHETER"
-    OTHER = "OTHER"
     UNKNOWN = "UNKNOWN"
 
 
@@ -144,10 +120,7 @@ class CurrentVbg:
     hco3_basis: Hco3Basis = Hco3Basis.UNKNOWN
     base_excess_mmol_l: float | None = None
     base_excess_basis: BaseExcessBasis = BaseExcessBasis.UNKNOWN
-    saturation_same_sample: TriState = TriState.UNKNOWN
     venous_o2_saturation: SaturationInput | None = None
-    specimen_type: SpecimenType = SpecimenType.UNKNOWN
-    draw_site: DrawSite = DrawSite.UNKNOWN
 
     def __post_init__(self) -> None:
         if self.ph is not None:
@@ -161,8 +134,6 @@ class CurrentVbg:
                 raise ExplorerInputError("current_vbg.pco2_unit is required with PCO2.")
             _require_enum("current_vbg.pco2_unit", self.pco2_unit, Pco2Unit)
         _require_enum("current_vbg.hco3_basis", self.hco3_basis, Hco3Basis)
-        _require_enum("current_vbg.specimen_type", self.specimen_type, SpecimenType)
-        _require_enum("current_vbg.draw_site", self.draw_site, DrawSite)
         if self.hco3_mmol_l is None:
             if self.hco3_basis is not Hco3Basis.UNKNOWN:
                 raise ExplorerInputError("current_vbg.hco3_basis must be UNKNOWN without HCO3.")
@@ -183,17 +154,11 @@ class CurrentVbg:
         ):
             raise ExplorerInputError("current_vbg.venous_o2_saturation must be SaturationInput.")
         _require_enum("base_excess_basis", self.base_excess_basis, BaseExcessBasis)
-        _require_enum("saturation_same_sample", self.saturation_same_sample, TriState)
         if (
             self.base_excess_mmol_l is None
             and self.base_excess_basis is not BaseExcessBasis.UNKNOWN
         ):
             raise ExplorerInputError("Base excess basis requires a reported value.")
-        if (
-            self.venous_o2_saturation is None
-            and self.saturation_same_sample is not TriState.UNKNOWN
-        ):
-            raise ExplorerInputError("Same-sample confirmation requires saturation.")
         if all(
             value is None
             for value in (
@@ -259,39 +224,15 @@ class CurrentChemistry:
 
 
 @dataclass(frozen=True, slots=True)
-class ExplorerContext:
-    """Minimal context; unknown remains explicit and blocks only model-dependent claims."""
-
-    known_poor_perfusion_or_hemodynamic_instability: TriState = TriState.UNKNOWN
-    recent_major_ventilation_or_treatment_change: TriState = TriState.UNKNOWN
-    material_preanalytic_concern: TriState = TriState.UNKNOWN
-    supplemental_oxygen: TriState = TriState.UNKNOWN
-
-    def __post_init__(self) -> None:
-        for name in (
-            "known_poor_perfusion_or_hemodynamic_instability",
-            "recent_major_ventilation_or_treatment_change",
-            "material_preanalytic_concern",
-            "supplemental_oxygen",
-        ):
-            _require_enum(f"context.{name}", getattr(self, name), TriState)
-
-    def to_dict(self) -> dict[str, object]:
-        return _as_dict(self)
-
-
-@dataclass(frozen=True, slots=True)
 class VbgExplorerRequest:
     current_vbg: CurrentVbg
     current_chemistry: CurrentChemistry = field(default_factory=CurrentChemistry)
-    context: ExplorerContext = field(default_factory=ExplorerContext)
     schema_version: str = field(default=VBG_EXPLORER_REQUEST_SCHEMA_VERSION, init=False)
 
     def __post_init__(self) -> None:
         for name, kind in (
             ("current_vbg", CurrentVbg),
             ("current_chemistry", CurrentChemistry),
-            ("context", ExplorerContext),
         ):
             if not isinstance(getattr(self, name), kind):
                 raise ExplorerInputError(f"{name} must be {kind.__name__}.")
@@ -324,12 +265,25 @@ class VenousGas:
 
 
 @dataclass(frozen=True, slots=True)
+class ProvisionalInterpretation:
+    status: CalculationStatus
+    assessment: dict[str, object] = field(default_factory=dict)
+    missing_inputs: tuple[str, ...] = ()
+    limitations: tuple[str, ...] = ()
+    method_id: str = "boston_estimated_gas_v1"
+    output_provenance: str = "PROVISIONAL_ESTIMATED_GAS_INTERPRETATION"
+
+
+@dataclass(frozen=True, slots=True)
 class VbgExplorerResult:
     input_summary: dict[str, object]
     venous_gas: VenousGas
     chemistry: dict[str, Calculation]
     screening: dict[str, object]
     arterial_paco2_estimate: Calculation
+    arterial_ph_estimate: Calculation
+    modeled_arterial_hco3: Calculation
+    provisional_interpretation: ProvisionalInterpretation
     unresolved_questions: tuple[str, ...]
     highest_value_next_inputs: tuple[str, ...]
     methods: dict[str, object]

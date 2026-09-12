@@ -4,7 +4,7 @@ import {
 } from "./js/explorer-rendering.js";
 import { createWorkerClient } from "./js/worker-client.js";
 
-const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/3.0";
+const REQUEST_SCHEMA_VERSION = "vbg_explorer_request/4.0";
 const DECIMAL_STRING = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 
 class BrowserInputError extends Error {}
@@ -18,7 +18,6 @@ const refs = {
   assistiveStatus: document.querySelector("#assistive-status"),
   formErrors: document.querySelector("#form-errors"),
   resultsPanel: document.querySelector("#results-panel"),
-  optionalDetails: document.querySelectorAll("details.optional-group"),
 };
 
 const state = {
@@ -112,10 +111,6 @@ function collectCurrentVbg() {
     base_excess_mmol_l: baseExcess,
     base_excess_basis:
       baseExcess === null ? "UNKNOWN" : selectValue("base-excess-basis"),
-    saturation_same_sample:
-      saturationValue === null
-        ? "UNKNOWN"
-        : selectValue("saturation-same-sample"),
     venous_o2_saturation:
       saturationValue === null
         ? null
@@ -123,8 +118,6 @@ function collectCurrentVbg() {
             value: saturationValue,
             unit: selectValue("venous-saturation-unit"),
           },
-    specimen_type: selectValue("specimen-type"),
-    draw_site: selectValue("draw-site"),
   };
 }
 
@@ -142,22 +135,11 @@ function collectCurrentChemistry() {
   };
 }
 
-function collectContext() {
-  return {
-    known_poor_perfusion_or_hemodynamic_instability:
-      selectValue("poor-perfusion"),
-    recent_major_ventilation_or_treatment_change: selectValue("recent-change"),
-    material_preanalytic_concern: selectValue("preanalytic-concern"),
-    supplemental_oxygen: selectValue("supplemental-oxygen"),
-  };
-}
-
 function collectRequest() {
   return {
     schema_version: REQUEST_SCHEMA_VERSION,
     current_vbg: collectCurrentVbg(),
     current_chemistry: collectCurrentChemistry(),
-    context: collectContext(),
   };
 }
 
@@ -173,9 +155,6 @@ function syncConditionalFields() {
 function resetExplorer() {
   invalidateInterpretation();
   refs.form.reset();
-  for (const details of refs.optionalDetails) {
-    details.open = false;
-  }
   syncConditionalFields();
   announce("Explorer inputs and results reset.");
   byId("current-ph").focus();

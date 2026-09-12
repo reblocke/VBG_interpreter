@@ -2,9 +2,9 @@
 
 Enter the VBG and chemistry values you have. The Explorer reports only the measurements,
 calculations, screening statements, and model estimates supported by those inputs. Missing values
-suppress only the dependent result. Categorical screening is not configured in v0.3.
+suppress only the dependent result. Categorical screening is not configured in v0.4.
 
-**[Open the hosted v0.3 research preview](https://reblocke.github.io/VBG_interpreter/)**
+**[Open the hosted v0.4 research preview](https://reblocke.github.io/VBG_interpreter/)**
 
 This client-side app is for research and education. It is not clinically validated, is not medical
 advice, and must not be used to diagnose, treat, or replace an ABG when arterial confirmation is
@@ -27,7 +27,7 @@ management decisions, claims of analyzer equivalence, or deciding that an ABG is
 One or more VBG values: pH, PvCO2 with unit, blood-gas HCO3 with reported/calculated/unknown basis,
 reported base excess with standard/actual/unknown basis, or unit-explicit venous O2 saturation.
 Every CMP/BMP field is optional: sodium, chloride, serum total CO2, albumin, and lactate.
-Chemistry timing and collapsed specimen/context fields refine only dependent calculations.
+Saturation is labeled as same-sample venous O2 saturation, not SpO2 or PO2. There is no clinical-context questionnaire. Chemistry timing refines only the venous Stewart calculation.
 
 ## What it returns
 
@@ -37,7 +37,9 @@ Chemistry timing and collapsed specimen/context fields refine only dependent cal
 | Any two core gas coordinates | HH completion of the third, explicitly derived |
 | All three coordinates | Neutral reported-minus-HH HCO3 difference |
 | Reported standard BE, or sufficient gas coordinates | Reported or calculated venous SBE; calculated values assume 37°C |
-| Measured PvCO2 and confirmed same-sample venous saturation | Gated Farkas/Jörg PaCO2 estimate and deterministic agreement range |
+| Measured venous pH and/or PvCO2 | Rough arterial estimates: pH + 0.04 and PvCO2 − 5 mmHg |
+| Measured PvCO2 and same-sample venous saturation | Farkas replaces the fixed CO2 correction; conservative population agreement range |
+| Both measured pH and PvCO2 | Modeled arterial bicarbonate and a provisional Boston interpretation; BE not required |
 | Na, Cl, serum total CO2 | Serum anion gap |
 | AG operands and albumin | Albumin-corrected AG, without a universal reference cutoff |
 | Na and Cl | Descriptive Na−Cl difference |
@@ -48,16 +50,21 @@ actual or unspecified BE is not relabeled as SBE. If reported standard BE is abs
 SBE uses the selected Van Slyke equation and carries its derivation and normothermia assumption
 into any eligible partition. Serum total CO2 is never substituted for blood-gas HCO3.
 
-Full PaCO2 applicability requires upper-extremity peripheral sampling and explicit favorable
-context. Known blockers withhold estimation. Unknown context can permit a prominently marked
-applicability-uncertain estimate; same-sample confirmation is still mandatory. There is no
-arterial pH estimate or complete arterial acid–base classification.
+“What’s known” separates supplied measurements from venous/chemistry calculations. “Best guess”
+shows estimated arterial values and an explicitly provisional acid–base interpretation. Matching
+pH × CO2 plots display measured and estimated coordinates with shared scales. Their reference
+cross (pH 7.40 / CO2 40 mmHg) is descriptive, not a validated venous cutoff. The plots never infer
+or exclude a disorder. Single coordinates retain partial output without inventing a plotted pair.
 
-The five result cards show venous gas, relevant chemistry, relevant PaCO2 estimation, uncertainty
-with at most three additional-information items, and collapsed methods/evidence. A calculation's
-numerical failure preserves independent results.
+Fixed corrections are owner-selected heuristics, without individual uncertainty bounds. Farkas
+changes only PaCO2; pH retains +0.04. All applicability is unassessed. Its conservative agreement
+range is not individual confidence or a joint pH/CO2 region. The combined provisional assessment
+has not been clinically validated and does not establish chronicity. BE is optional throughout.
 
-The live schemas are `vbg_explorer_request/3.0` and `vbg_explorer_result/3.0`, without compatibility
+The bottom formulas/evidence box remains expandable; general research/privacy wording appears
+once in the footer. Numerical failure preserves independent results.
+
+The live schemas are `vbg_explorer_request/4.0` and `vbg_explorer_result/4.0`, without compatibility
 shims. See the [interpretation specification and synthetic examples](docs/INTERPRETATION_SPEC.md),
 [clinical scope](docs/CLINICAL_SCOPE.md), and [evidence record](docs/EVIDENCE.md).
 
@@ -121,7 +128,7 @@ patient-specific interpretation, or emergency support.
 
 ## Version, citation, and license
 
-Version `0.3.0` is the current public research preview. The hosted Explorer is deployed only from
+Version `0.4.0` is the current public research preview. The hosted Explorer is deployed only from
 the reviewed `main` commit and publishes that exact source identity in `release-manifest.json`.
 Cite the manifest commit or the exact source commit used. Structured citation metadata are in
 [CITATION.cff](CITATION.cff). Repository-authored code is available under the [MIT License](LICENSE),
