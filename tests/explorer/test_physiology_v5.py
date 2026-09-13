@@ -58,11 +58,11 @@ def result(ph=7.32, pco2=55, sample=SampleType.PERIPHERAL, sat=None, chemistry=N
 @pytest.mark.parametrize("sat", [None, 75])
 def test_sample_selection_and_no_hidden_fallback(sample, sat):
     r = result(sample=sample, sat=sat)
-    farkas = sample is SampleType.PERIPHERAL and sat is not None
+    farkas = sample is not SampleType.CENTRAL and sat is not None
     assert r.arterial_ph_estimate.values["ph"] == pytest.approx(7.36)
     assert r.arterial_paco2_estimate.values["point"] == pytest.approx(51.04 if farkas else 50)
-    assert ("lower" in r.arterial_paco2_estimate.values) == farkas
-    assert ("not used" in r.narrative["best_guess"]) == (sat is not None and not farkas)
+    assert (r.arterial_paco2_estimate.agreement.status == "AVAILABLE") == farkas
+    assert ("Central sample:" in r.narrative["best_guess"]) == (sample is SampleType.CENTRAL)
     if sample is SampleType.UNKNOWN:
         assert "illustrative systemic-venous" in r.narrative["conditional_physiology"]
         assert "Sample type not specified." in r.physiology_direction["caption"]
@@ -107,7 +107,7 @@ def test_failed_sensitivity_scenario_never_claims_robustness(monkeypatch):
         assessment = original(ph, co2, hco3)
         return (
             replace(assessment, status=Status.MODEL_DOMAIN_REFUSAL)
-            if co2.values["point"] == co2.values["lower"]
+            if co2.values["point"] == co2.agreement.lower
             else assessment
         )
 
@@ -225,7 +225,7 @@ def test_bmp_discrepancy_prefers_measured_pair_and_preserves_third_coordinate():
 def test_bmp_alternate_completed_pair_basis_is_explicit(ph, co2):
     r = result(ph, co2, hco3_mmol_l=27, chemistry=CurrentChemistry(140, 100, 12))
     c = r.chemistry["bmp_gas_bicarbonate_comparison"]
-    assert c.values["gas_basis"] == "SUPPLIED_BLOOD_GAS_HCO3_COMPLETED_PAIR"
+    assert c.values["gas_basis"] == "SUPPLIED_BLOOD_GAS_HCO3"
     assert c.values["bmp_minus_gas_hco3"] == -15
 
 
@@ -259,7 +259,7 @@ def test_albumin_units_normalize_once_and_never_guess():
 def test_farkas_point_and_interval_outside_direction_are_retained():
     r = result(sat=100)
     assert r.arterial_paco2_estimate.values["point"] == pytest.approx(56.54)
-    assert r.arterial_paco2_estimate.values["upper"] == pytest.approx(65.28)
+    assert r.arterial_paco2_estimate.agreement.upper == pytest.approx(65.28)
     assert r.physiology_direction["axes"]["pco2"]["bound"] == 55
     assert len(r.narrative["model_disagreements"]) == 2
 

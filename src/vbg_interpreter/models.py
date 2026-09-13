@@ -5,12 +5,13 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Literal
 
 from vbg_interpreter.serialization import to_primitive
 from vbg_interpreter.version import VERSION
 
 VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/5.0"
-VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/5.0"
+VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/6.0"
 
 
 class ExplorerInputError(ValueError):
@@ -272,6 +273,34 @@ class VbgExplorerRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class ArterialSelection:
+    """Component source and case evidence; formula evidence stays on Calculation."""
+
+    source_coordinate_origin: Literal["SUPPLIED", "HH_RECONSTRUCTED", "UNAVAILABLE"]
+    source_value: float | None
+    source_status: CalculationStatus
+    source_field_ids: tuple[str, ...]
+    source_values: dict[str, object]
+    derivation_method_id: str | None
+    sample_type_as_entered: SampleType
+    model_scope: Literal[
+        "PERIPHERAL_CATEGORY_MATCH", "PERIPHERAL_ASSUMPTION", "CENTRAL_HEURISTIC", "UNASSESSED"
+    ]
+    reason_codes: tuple[str, ...]
+    case_evidence: Literal["SUPPLIED_INPUT", "CHAINED_UNVALIDATED", "UNAVAILABLE"]
+    interpretation_suitable: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Agreement:
+    status: Literal["AVAILABLE", "NOT_QUANTIFIED", "UNAVAILABLE"]
+    reason_code: str
+    lower: float | None = None
+    upper: float | None = None
+    units: str = "mmHg"
+
+
+@dataclass(frozen=True, slots=True)
 class Calculation:
     status: CalculationStatus
     values: dict[str, float | str]
@@ -283,6 +312,8 @@ class Calculation:
     limitations: tuple[str, ...] = ()
     missing_inputs: tuple[str, ...] = ()
     applicability: str | None = None
+    selection: ArterialSelection | None = None
+    agreement: Agreement | None = None
 
 
 @dataclass(frozen=True, slots=True)

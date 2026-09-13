@@ -15,7 +15,7 @@ or fraction units and is declared to be from the same sample by its field defini
 PO2 are not substitutes. HCO3 basis is reported/calculated/unknown; BE basis is standard/actual/
 unknown. Sample type is PERIPHERAL/CENTRAL/UNKNOWN (default UNKNOWN). No adverse-context, supplemental-oxygen or separate same-sample questionnaire is present. Albumin is `{value, unit}` with g/L or g/dL; normalized_g_l is output-only. Applicability is not assessed. Chemistry timing remains explicit.
 
-## Result 5.0
+## Result 6.0
 
 The root contains schema/software versions, input summary, venous gas, chemistry, screening,
 `arterial_ph_estimate`, `arterial_paco2_estimate`, `modeled_arterial_hco3`,
@@ -37,31 +37,61 @@ this does not establish an acute process. The helper's broad acute/chronic compa
 
 ## Estimate selection and independent outputs
 
-- Measured venous pH alone supports estimated arterial pH = pH + 0.04.
-- Measured PvCO2 alone supports estimated PaCO2 = PvCO2(mmHg) − 5.
-- Adding same-sample venous saturation to an explicitly PERIPHERAL sample selects Farkas: PvCO2 − 0.22 × (93 − saturation%).
-  It replaces only the CO2 correction. No second subtraction and no saturation-based pH change.
-- Fixed corrections have no uncertainty interval. Farkas retains the conservative published
-  error bounds −8.74 to +9.20 mmHg, reversed into [estimate − 9.20, estimate + 8.74].
-  These are population agreement bounds, not individual confidence or a joint arterial region.
-- All estimates have APPLICABILITY_UNASSESSED. No removed flag is silently set to favorable.
-- Both estimated coordinates enable HH-modeled arterial bicarbonate and a provisional Boston
-  assessment. These depend only on source-measured pH/PvCO2 and optional saturation. Reported or
-  HH-derived venous HCO3 and serum total CO2 are never substituted into this modeled gas.
-- Nonpositive/nonfinite estimates, Farkas endpoints or modeled bicarbonate cause local numerical
-  refusal. There is no clamping or fallback after a failing selected method. Supplied invalid
-  saturation is an input error, not an instruction to use the fixed method.
-- Venous HH completion, SBE and chemistry remain independent. Standard reported BE takes
-  precedence; otherwise a sufficient venous pair supports calculated SBE at assumed 37°C.
-  BE never gates arterial estimates or their provisional interpretation. The venous Stewart
-  partition still requires measured pH, reported/calculated SBE and same-time Na/Cl/albumin.
+| Supplied pH / PvCO2 / gas HCO3 | Resolved arterial capability |
+| --- | --- |
+| None (BE or saturation only) | Neither coordinate |
+| pH only | pH +0.04 |
+| PvCO2 only | CO2 estimate only |
+| HCO3 only | Neither coordinate |
+| pH + PvCO2 | Both; venous HH HCO3 separate from modeled arterial HCO3 |
+| pH + HCO3 | HH-reconstruct PvCO2; both estimates, labeled chained |
+| PvCO2 + HCO3 | HH-reconstruct pH; both estimates, labeled chained |
+| All three | Supplied pH/PvCO2 precedence; preserve third value and consistency |
+
+Resolved pH uses +0.04. Resolved PvCO2 uses −5 without saturation or for Central; saturation
+selects Farkas for Peripheral and conditionally Unknown: PvCO2 −0.22 × (93 − saturation%).
+Unknown stays Unknown and states the peripheral assumption. Central explains the fixed route.
+Zero saturation is present; malformed/out-of-range saturation remains a typed input error.
+No pH, chemistry or BE prerequisite applies to the independent CO2 component.
+
+Each arterial calculation has a typed `selection`: source coordinate origin
+(SUPPLIED/HH_RECONSTRUCTED/UNAVAILABLE), normalized source value and status, source field IDs,
+original source values/units/basis, derivation method, entered sample type, model scope, reason
+codes, case evidence and interpretation suitability. Calculation `status` is point status and
+`method_id` is the selected method. Formula `evidence_tier` never implies case validation.
+Other calculations have null selection/agreement fields. `source_pvco2` replaces the formerly
+measured-only values key; it is not intrinsically a measured coordinate.
+
+The separate `agreement` record has AVAILABLE/NOT_QUANTIFIED/UNAVAILABLE status, reason,
+units, and nullable endpoints. No endpoints remain in point `values`. Supplied-PvCO2 Farkas
+comparison is [point −9.20, point +8.74], reversing published estimate-minus-reference errors
+[−8.74,+9.20]. Positive finite points survive invalid endpoints. Nonpositive/nonfinite points
+are refused locally, preserving selected method; no clipping or fixed fallback occurs.
+Reconstructed PvCO2 has no evaluated interval. Reconstructed pH retains independently supported
+CO2 agreement. Unknown ranges are peripheral-study context under an unconfirmed assumption.
+Sensitivity explicitly checks agreement availability; no range means NOT_QUANTIFIED, unless
+a required pair is itself unavailable. Available scenarios hold estimated pH fixed, including
+reconstructed pH, and recompute HH at each CO2 value.
+
+Only absent axes may be reconstructed with retained HH constants, using actual same-gas HCO3.
+Supplied coordinates are never overwritten; BMP HCO3 and BE cannot reconstruct gas coordinates.
+All estimates remain applicability-unassessed. Modeled arterial HCO3 uses only the estimated
+pair, followed by unchanged pinned Boston rules. A Blood gas HCO3 warning alone does not suppress
+finite chained arithmetic, plotting or provisional interpretation; supplied pH/PvCO2 warnings
+continue to suppress dependent interpretation and measured directions, including dependent chains.
+
+Reported STANDARD BE (including zero) takes precedence; otherwise existing gas-pair SBE at
+37°C applies. Actual/unknown BE is not SBE. Chemistry remains independent; Stewart requires
+supplied pH, SBE, same-time Na/Cl/albumin, with optional lactate. BMP–gas comparison prefers HH
+from usable supplied pH/PvCO2, otherwise directly supplied actual gas HCO3 without requiring a
+completed gas. Finite warned bicarbonates retain subtraction and the existing >10 warning.
 
 ## Displays and additional information
 
 “What’s known” contains measurements and separately identified calculations. Its pH × CO2 plot
 uses usable measured venous axes, with pressure normalized by Python. A single usable axis shows a half-plane without a point; two axes show lower-right directional shading. “Best guess” shows
 estimated arterial coordinates, modeled bicarbonate and provisional interpretation. Its plot
-uses the estimated pair. An incomplete estimated pair has an explanatory message and retains available numbers; no point is fabricated from derived source coordinates.
+uses the estimated pair. An incomplete estimated pair has an explanatory message and retains available numbers; a suitable HH-derived chain can orient the Best guess plot without adding a measured point or independent bound.
 
 Plots share pH x-limits initially 7.0–7.8 and CO2 y-limits initially 20–80 mmHg, expanded with
 8% padding where necessary to include points and Farkas endpoints. The shared reference cross
@@ -81,14 +111,14 @@ research/privacy wording is consolidated in the footer. Method-specific caveats 
 Measured pH 7.32 and PvCO2 55 mmHg give estimated arterial pH 7.36 and PaCO2 50 mmHg, modeled
 arterial HCO3 approximately 28.25585 mmol/L, and a provisional compensation assessment. Venous
 HH HCO3 remains approximately 28.34661 mmol/L and calculated venous SBE approximately 2.56340.
-Selecting Peripheral and adding saturation 75% changes only PaCO2 to 51.04, with agreement endpoints 41.84 and 59.78 mmHg;
+Adding saturation 75% with Peripheral or untouched Unknown changes only PaCO2 to 51.04, with agreement endpoints 41.84 and 59.78 mmHg;
 modeled bicarbonate and the provisional assessment are then recomputed from that estimated pair.
 
-[Request](examples/request-v5.json) and [result](examples/result-v5.json) are synthetic fixtures
+[Request](examples/request-v5.json) and [result](examples/result-v6.json) are synthetic fixtures
 from the public entry point. The browser has no export or persistence feature.
 
 
-## v5 interpretation and display metadata
+## Interpretation and display metadata
 
 `input_observations` records warning policy ID, source field, normalized value (null for
 normalization overflow), inclusive limits, and whether axis interpretation is suppressed.

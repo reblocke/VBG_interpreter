@@ -127,3 +127,18 @@ physiology, sensitivity and discrepancy communication described in ADR 0006. It 
 pinned upstream rules, static privacy boundary, footer warning and method evidence box. No tag,
 GitHub Release, patient validation, clinical coverage or new legal opinion is authorized or claimed.
 Earlier supplements remain historical. The reviewed PR and Pages manifest identify final source.
+
+## v0.6.0 source and Pages publication supplement — 2026-09-12
+
+The owner approved publication of the component-selection and qualified HH-chain implementation
+described in ADR 0007, including CI-gated PR merge, verification of the deployed source commit,
+and consolidation to one clean public-main checkout. Unknown samples retain their identity while
+conditionally using peripheral Farkas; reconstructed coordinates retain their source chain and
+unvalidated-case qualification. Point validity remains separate from agreement availability.
+
+The approved warning policy preserves finite chained estimates when blood-gas bicarbonate alone
+has a sanity warning; supplied pH/PvCO2 warnings remain dependency-specific. Existing formula,
+privacy, evidence, and public-visibility boundaries continue. Publication requires passing
+verify/validation checks and live source/asset verification. No tag, GitHub Release, clinical
+validation, new rights opinion, or publication of private historical ancestry is authorized.
+Earlier supplements remain historical. The merged PR and live Pages manifest identify the release.

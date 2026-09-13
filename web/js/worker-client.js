@@ -83,11 +83,11 @@ export function createWorkerClient({ onReady, onStatus, onError }) {
     });
 
     requestWorker("initialize", {}, "ready")
-      .then(() => {
+      .then((payload) => {
         if (worker !== currentWorker || failedWorker === currentWorker) {
           return;
         }
-        onReady();
+        onReady(payload);
       })
       .catch((error) => handleWorkerFailure(error, currentWorker));
   }

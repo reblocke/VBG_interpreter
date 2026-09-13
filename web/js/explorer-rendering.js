@@ -1,13 +1,12 @@
 import { renderCoordinatePlots } from "./coordinate-plots.js";
 import { formatNumber } from "./format.js";
-const SCHEMA = "vbg_explorer_result/5.0";
+const SCHEMA = "vbg_explorer_result/6.0";
 const LABELS = {
   ph: "Venous pH",
   gas_basis: "Gas bicarbonate basis",
   timing: "Chemistry timing",
   HH_FROM_MEASURED_PH_PVCO2: "HH from measured venous pH and PvCO₂",
-  SUPPLIED_BLOOD_GAS_HCO3_COMPLETED_PAIR:
-    "Supplied Blood gas HCO₃ in a completed venous pair",
+  SUPPLIED_BLOOD_GAS_HCO3: "Supplied Blood gas HCO₃",
   SAME_CLINICAL_TIMEPOINT: "Same clinical timepoint",
   DIFFERENT_TIMEPOINT: "Different timepoint",
   pco2: "PvCO₂",
@@ -41,11 +40,23 @@ const LABELS = {
   reconstructed_sbe: "Reconstructed SBE",
   closure_error: "Numerical closure error",
   point: "Estimated PaCO₂",
-  measured_pvco2: "Measured PvCO₂",
+  source_pvco2: "Source venous CO₂",
   saturation_percent: "Measured venous saturation",
   STANDARD: "standard",
   ACTUAL: "actual / whole-blood",
   UNKNOWN: "unknown",
+  SUPPLIED_INPUT: "supplied coordinate",
+  CHAINED_UNVALIDATED: "chained / unvalidated",
+  HH_RECONSTRUCTED: "HH-reconstructed",
+  PERIPHERAL_CATEGORY_MATCH: "peripheral sample category; other applicability unassessed",
+  PERIPHERAL_ASSUMPTION: "peripheral assumption, sample unknown",
+  CENTRAL_HEURISTIC: "central sample, fixed heuristic",
+  NO_EVALUATED_INTERVAL: "no evaluated interval for this heuristic",
+  RECONSTRUCTED_PVCO2_CHAIN: "uncertainty not quantified for reconstructed PvCO₂",
+  POINT_UNAVAILABLE: "point estimate unavailable",
+  NONPHYSICAL_ENDPOINT: "nonphysical agreement endpoint",
+  NOT_QUANTIFIED: "not quantified",
+  UNAVAILABLE: "unavailable",
   REPORTED: "reported",
   CALCULATED: "calculated",
 };
@@ -269,6 +280,8 @@ export function renderExplorerResult(payload) {
   const ph = result.arterial_ph_estimate;
   renderCalculation(arterial, "Estimated arterial pH", ph);
   arterial.append(node("h3", "Estimated PaCO₂"));
+  if (estimate.agreement.status !== "AVAILABLE")
+    arterial.append(node("p", `Agreement: ${label(estimate.agreement.status)} (${label(estimate.agreement.reason_code)}).`, "limitation"));
   if (estimate.status === "AVAILABLE") {
     metric(arterial, null, estimate.values.point, "mmHg");
     arterial.append(
@@ -279,19 +292,20 @@ export function renderExplorerResult(payload) {
           : "Method: fixed −5 mmHg correction.",
       ),
     );
-    if (Number.isFinite(estimate.values.lower))
+    if (estimate.agreement.status === "AVAILABLE")
       metric(
         arterial,
         "Population agreement range",
-        `${number(estimate.values.lower)}–${number(estimate.values.upper)}`,
+        `${number(estimate.agreement.lower)}–${number(estimate.agreement.upper)}`,
         "mmHg",
       );
     for (const text of estimate.limitations)
       arterial.append(node("p", text, "limitation"));
-  } else
-    renderCalculation(arterial, "Estimated PaCO₂", estimate, {
-      showTitle: false,
-    });
+  } else {
+    renderCalculation(arterial, "Estimated PaCO₂", estimate, { showTitle: false });
+    arterial.append(node("p", `Selected method: ${estimate.method_id === "farkas_simplified_93_v1" ? "Farkas" : "fixed −5 mmHg correction"}; no estimate is available.`));
+    for (const text of estimate.limitations) arterial.append(node("p", text, "limitation"));
+  }
   renderCalculation(
     arterial,
     "Modeled arterial bicarbonate",
@@ -314,7 +328,7 @@ export function renderExplorerResult(payload) {
       node(
         "p",
         provisional.status === "UNAVAILABLE_MISSING_INPUT"
-          ? "Requires both measured pH and PvCO₂ for the estimated gas interpretation."
+          ? "Requires both available arterial estimates, using supplied or HH-reconstructed gas coordinates."
           : provisional.status === "UNAVAILABLE_UNRELIABLE_INPUT"
             ? "Interpretation withheld because a required gas coordinate has an input sanity warning. Finite arithmetic is retained above."
             : `Interpretation unavailable: ${label(provisional.status)}.`,
@@ -390,6 +404,12 @@ export function renderExplorerResult(payload) {
       node("p", method.description),
       node("p", `Evidence: ${label(method.evidence_tier)}.`, "limitation"),
     );
+    for (const calc of [ph, estimate].filter((c) => c.method_id === id)) {
+      const choice = calc.selection;
+      methods.append(node("p", `Case: ${label(choice.case_evidence)}; source: ${label(choice.source_coordinate_origin)}; ${label(choice.model_scope)}.`));
+      for (const text of calc.limitations.filter((t) => /^(Best guess using|Farkas estimate assumes|Central sample:)/.test(t)))
+        methods.append(node("p", text, "limitation"));
+    }
     for (const source of method.sources) {
       const href = source.startsWith("https://")
         ? source

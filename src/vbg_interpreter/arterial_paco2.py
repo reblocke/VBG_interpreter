@@ -1,8 +1,13 @@
-"""Measured-source arterial estimates with explicit, unassessed applicability."""
+"""Per-output arterial estimates with explicit source chains and unassessed applicability."""
+
+import math
+from dataclasses import replace
 
 from vbg_interpreter.evidence import PACO2_CONSERVATIVE_ERRORS, calculation
-from vbg_interpreter.models import Calculation, SampleType, VbgExplorerRequest
-from vbg_interpreter.normalize import normalize_pco2_to_mmhg
+from vbg_interpreter.models import Agreement, Calculation, CalculationStatus, VbgExplorerRequest
+from vbg_interpreter.observations import input_observations, unreliable_axes
+from vbg_interpreter.selection import select_component
+from vbg_interpreter.venous_gas import complete_venous_gas
 
 APPLICABILITY = "APPLICABILITY_UNASSESSED"
 CONTEXT_LIMIT = (
@@ -11,79 +16,123 @@ CONTEXT_LIMIT = (
 )
 
 
-def estimate_arterial_ph(request: VbgExplorerRequest) -> Calculation:
-    ph = request.current_vbg.ph
-    return calculation(
-        "fixed_ph_offset_v1",
-        values={} if ph is None else {"ph": ph + 0.04},
-        units={"ph": "pH units"},
-        origins={} if ph is None else {"ph": "MEASURED_OR_REPORTED_VENOUS"},
-        missing=("measured venous pH",) if ph is None else (),
-        provenance="HEURISTIC_ARTERIAL_ESTIMATE",
-        applicability=APPLICABILITY,
-        limitations=("Rough fixed pH correction (+0.04); no individual uncertainty interval.",),
-    )
-
-
-def estimate_arterial_paco2(request: VbgExplorerRequest) -> Calculation:
-    """Only the supplied PvCO2 enters either method; saturation selects Farkas."""
-    source = request.current_vbg
-    saturation = (
-        source.venous_o2_saturation if source.sample_type is SampleType.PERIPHERAL else None
-    )
-    method = "fixed_paco2_offset_v1" if saturation is None else "farkas_simplified_93_v1"
-    origins = {} if source.pco2 is None else {"pco2": "MEASURED_OR_REPORTED_VENOUS"}
-    origins["sample_type"] = source.sample_type.value
-    limits = (CONTEXT_LIMIT,)
-    if source.venous_o2_saturation is not None and saturation is None:
-        limits += (
-            f"Sample: {source.sample_type.value.lower()}. Peripheral Farkas was not applied; "
-            "the fixed −5 mmHg heuristic was selected.",
-        )
-    if saturation is None:
-        limits += ("Rough fixed CO2 correction (−5 mmHg); no individual uncertainty interval.",)
+def _estimate(request, axis, gas, blocked):
+    if gas is None:
+        gas = complete_venous_gas(request.current_vbg)
+    if blocked is None:
+        blocked = unreliable_axes(input_observations(request))
+    method, selection = select_component(request.current_vbg, gas, axis, blocked)
+    chained = selection.case_evidence == "CHAINED_UNVALIDATED"
+    farkas = method == "farkas_simplified_93_v1"
+    limits = [CONTEXT_LIMIT]
+    if axis == "ph":
+        limits.append("Rough fixed pH correction (+0.04); no individual uncertainty interval.")
+    elif not farkas:
+        limits.append("Rough fixed CO2 correction (−5 mmHg); no individual uncertainty interval.")
     else:
-        origins["venous_saturation"] = "REPORTED_SAME_SAMPLE_VENOUS"
-        limits += (
+        limits.append(
             "Farkas PaCO2 component externally evaluated in peripheral samples; this combined "
-            "pH/CO2 interpretation is not externally validated.",
-            "Conservative published oxygen-profile agreement range; not a patient-specific "
-            "confidence interval or joint pH/CO2 region.",
+            "pH/CO2 interpretation is not externally validated."
         )
-    kwargs = dict(
-        origins=origins,
-        provenance="HEURISTIC_ARTERIAL_ESTIMATE"
-        if saturation is None
-        else "MODEL_BASED_ARTERIAL_ESTIMATE",
-        applicability=APPLICABILITY,
-        limitations=limits,
-    )
-    if source.pco2 is None:
-        return calculation(method, missing=("measured PvCO2",), **kwargs)
-    try:
-        pvco2 = normalize_pco2_to_mmhg(source.pco2, source.pco2_unit)
-        point = (
-            pvco2 - 5
-            if saturation is None
-            else pvco2 - 0.22 * (93 - saturation.normalized_percentage_points)
+    if selection.model_scope == "PERIPHERAL_ASSUMPTION":
+        limits.append("Farkas estimate assumes a peripheral sample; sample type is unknown.")
+    elif selection.model_scope == "CENTRAL_HEURISTIC":
+        limits.append(
+            "Central sample: the fixed CO2 heuristic is used; peripheral Farkas was not applied."
         )
-        values = {"measured_pvco2": pvco2, "point": point}
-        units = {"measured_pvco2": "mmHg", "point": "mmHg"}
-        minimum = point
-        if saturation is not None:
-            error_lower, error_upper = PACO2_CONSERVATIVE_ERRORS
-            lower, upper = point - error_upper, point - error_lower
-            values.update(
-                saturation_percent=saturation.normalized_percentage_points, lower=lower, upper=upper
-            )
-            units.update(saturation_percent="%", lower="mmHg", upper="mmHg")
-            minimum = min(point, lower, upper)
-            if saturation.normalized_percentage_points > 93:
-                kwargs["limitations"] += (
-                    "Saturation exceeds the simplified 93% reference; no clamp applied.",
+    if chained:
+        name = "pH" if axis == "ph" else "PvCO2"
+        limits.append(
+            f"Best guess using an HH-reconstructed venous {name}. Chained route is unvalidated."
+        )
+    agreement = Agreement("NOT_QUANTIFIED", "NO_EVALUATED_INTERVAL")
+    values, units = {}, {}
+    failed = selection.source_status is CalculationStatus.MODEL_DOMAIN_REFUSAL
+    if selection.source_value is not None:
+        source_value = selection.source_value
+        try:
+            if axis == "ph":
+                point = source_value + 0.04
+                values, units = {"ph": point}, {"ph": "pH units"}
+            else:
+                saturation = request.current_vbg.venous_o2_saturation
+                point = source_value - (
+                    0.22 * (93 - saturation.normalized_percentage_points) if farkas else 5
                 )
-        return calculation(
-            method, values=values, units=units, domain_refusal=minimum <= 0, **kwargs
+                values = {"source_pvco2": source_value, "point": point}
+                units = {"source_pvco2": "mmHg", "point": "mmHg"}
+                if farkas:
+                    values["saturation_percent"] = saturation.normalized_percentage_points
+                    units["saturation_percent"] = "%"
+                    if saturation.normalized_percentage_points > 93:
+                        limits.append(
+                            "Saturation exceeds the simplified 93% reference; no clamp applied."
+                        )
+            failed = not math.isfinite(point) or point <= 0
+            if failed:
+                agreement = Agreement("UNAVAILABLE", "POINT_UNAVAILABLE")
+            elif farkas and chained:
+                agreement = Agreement("NOT_QUANTIFIED", "RECONSTRUCTED_PVCO2_CHAIN")
+                limits.append(
+                    "Uncertainty for the reconstructed-PvCO2 chain has not been quantified."
+                )
+            elif farkas:
+                error_lower, error_upper = PACO2_CONSERVATIVE_ERRORS
+                lower, upper = point - error_upper, point - error_lower
+                if all(math.isfinite(v) and v > 0 for v in (lower, upper)):
+                    agreement = Agreement("AVAILABLE", "PERIPHERAL_STUDY_COMPARISON", lower, upper)
+                    limits.append(
+                        "Conservative published peripheral-study agreement range; not a "
+                        "patient-specific confidence interval or joint pH/CO2 region."
+                    )
+                    if selection.model_scope == "PERIPHERAL_ASSUMPTION":
+                        limits.append(
+                            "Agreement is peripheral-study context under an unconfirmed sample "
+                            "assumption."
+                        )
+                else:
+                    agreement = Agreement("UNAVAILABLE", "NONPHYSICAL_ENDPOINT")
+                    limits.append(
+                        "Agreement interval is nonphysical and unavailable; the finite point "
+                        "is retained with a numerical/spectrum limitation."
+                    )
+        except (ArithmeticError, ValueError):
+            failed = True
+            agreement = Agreement("UNAVAILABLE", "POINT_UNAVAILABLE")
+    else:
+        agreement = Agreement("UNAVAILABLE", "POINT_UNAVAILABLE")
+    result = calculation(
+        method,
+        values=values,
+        units=units,
+        origins={key: str(entry["provenance"]) for key, entry in selection.source_values.items()},
+        missing=("usable venous " + ("pH" if axis == "ph" else "PvCO2"),)
+        if selection.source_status is CalculationStatus.UNAVAILABLE_MISSING_INPUT
+        else (),
+        domain_refusal=failed,
+        provenance="CHAINED_ARTERIAL_ESTIMATE"
+        if chained
+        else "MODEL_BASED_ARTERIAL_ESTIMATE"
+        if farkas
+        else "HEURISTIC_ARTERIAL_ESTIMATE",
+        applicability=APPLICABILITY,
+        limitations=tuple(limits),
+    )
+    if result.status is CalculationStatus.MODEL_DOMAIN_REFUSAL:
+        selection = replace(
+            selection, reason_codes=(*selection.reason_codes, "SELECTED_METHOD_NUMERICAL_FAILURE")
         )
-    except (ArithmeticError, ValueError):
-        return calculation(method, domain_refusal=True, **kwargs)
+    selection = replace(
+        selection,
+        interpretation_suitable=selection.interpretation_suitable
+        and result.status is CalculationStatus.AVAILABLE,
+    )
+    return replace(result, selection=selection, agreement=agreement)
+
+
+def estimate_arterial_ph(request: VbgExplorerRequest, gas=None, blocked=None) -> Calculation:
+    return _estimate(request, "ph", gas, blocked)
+
+
+def estimate_arterial_paco2(request: VbgExplorerRequest, gas=None, blocked=None) -> Calculation:
+    return _estimate(request, "pco2", gas, blocked)

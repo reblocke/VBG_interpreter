@@ -2,9 +2,9 @@
 
 Enter the VBG and chemistry values you have. The Explorer reports only the measurements,
 calculations, screening statements, and model estimates supported by those inputs. Missing values
-suppress only the dependent result. Categorical screening is not configured in v0.5.
+suppress only the dependent result. Categorical screening is not configured in v0.6.
 
-**[Open the hosted v0.5 research preview](https://reblocke.github.io/VBG_interpreter/)**
+**[Open the hosted v0.6 research preview](https://reblocke.github.io/VBG_interpreter/)**
 
 This client-side app is for research and education. It is not clinically validated, is not medical
 advice, and must not be used to diagnose, treat, or replace an ABG when arterial confirmation is
@@ -37,15 +37,15 @@ Saturation is labeled as same-sample venous O2 saturation, not SpO2 or PO2. The 
 | Any two core gas coordinates | HH completion of the third, explicitly derived |
 | All three coordinates | Neutral reported-minus-HH HCO3 difference |
 | Reported standard BE, or sufficient gas coordinates | Reported or calculated venous SBE; calculated values assume 37°C |
-| Measured venous pH and/or PvCO2 | Rough arterial estimates: pH + 0.04 and PvCO2 − 5 mmHg |
-| Explicit peripheral sample, measured PvCO2 and same-sample saturation | Farkas replaces the fixed CO2 correction; conservative population agreement range |
-| Both measured pH and PvCO2 | Modeled arterial bicarbonate and a provisional Boston interpretation; BE not required |
+| Supplied or HH-resolved venous pH and/or PvCO2 | Rough arterial estimates: pH + 0.04 and PvCO2 − 5 mmHg |
+| Peripheral or Unknown sample, resolved PvCO2 and same-sample saturation | Farkas replaces the fixed CO2 correction; Unknown retains an explicit peripheral assumption |
+| Both resolved pH and PvCO2 | Modeled arterial bicarbonate and a provisional Boston interpretation; BE not required |
 | Na, Cl, serum total CO2 | Serum anion gap |
 | AG operands and albumin | Albumin-corrected AG, without a universal reference cutoff |
 | Na and Cl | Descriptive Na−Cl difference |
 | Measured venous pH, reported/calculated SBE, same-time Na/Cl/albumin | Venous Stewart partition; optional lactate component |
 
-Derived pH/PvCO2 remain venous and cannot act as independently measured model inputs. Reported
+HH-reconstructed pH/PvCO2 may support a labeled chained best guess, with source units and derivation retained. They remain venous and cannot act as independently measured inputs or physiology bounds. Reconstructed PvCO2 carries no evaluated Farkas interval. Supplied PvCO2 retains its independent comparison range when only pH is reconstructed. Reported
 actual or unspecified BE is not relabeled as SBE. If reported standard BE is absent, calculated
 SBE uses the selected Van Slyke equation and carries its derivation and normothermia assumption
 into any eligible partition. Serum total CO2 is never substituted for blood-gas HCO3.
@@ -56,11 +56,11 @@ pH × CO2 plots display measured and estimated coordinates with shared scales. T
 cross (pH 7.40 / CO2 40 mmHg) is descriptive, not a validated venous cutoff. The plots never infer
 or exclude a disorder. A usable single measured coordinate supports a directional half-plane without inventing a plotted pair. The conditional tissue-transit model supplies shading; its assumptions are displayed and unverified. Shading is not a confidence region, guaranteed individual bound, or set of jointly attainable gases.
 
-A summary separates the best-guess conversion from conditional physiology. Peripheral Farkas lower/point/upper CO2 scenarios hold estimated pH fixed and recompute HH bicarbonate and the pinned Boston assessment. Category changes are disclosed; unchanged examples do not establish full robustness. Central/unknown samples use the fixed CO2 method even when saturation is supplied.
+A summary separates the best-guess conversion from conditional physiology. Peripheral Farkas lower/point/upper CO2 scenarios hold estimated pH fixed and recompute HH bicarbonate and the pinned Boston assessment. Category changes are disclosed; unchanged examples do not establish full robustness. Central samples use the fixed CO2 method even when saturation is supplied. Unknown uses Farkas conditionally; its sample identity stays Unknown.
 
-BMP HCO₃ means BMP/CMP total CO2; Blood gas HCO₃ means actual gas bicarbonate. Their signed difference uses an explicit venous gas basis and timing. Absolute discrepancy >10 mmol/L is a warning heuristic, not a diagnosis.
+BMP HCO₃ means BMP/CMP total CO2; Blood gas HCO₃ means actual gas bicarbonate. Their signed difference uses HH from a usable supplied pH/PvCO2 pair, otherwise directly supplied Blood gas HCO3; no completed gas is required for direct subtraction. Timing and basis remain visible. Absolute discrepancy >10 mmol/L is a warning heuristic, not a diagnosis.
 
-Finite unusual inputs produce warning-only observations without confirmation. A flagged pH or PvCO2 suppresses its own physiology direction and dependent whole-gas prose; independent axes and finite arithmetic remain available. Other warnings do not suppress usable measured-gas interpretation.
+Finite unusual inputs produce warning-only observations without confirmation. A flagged pH or PvCO2 suppresses its own physiology direction and dependent whole-gas prose; independent axes and finite arithmetic remain available. A Blood gas HCO3 warning alone does not suppress finite chained estimates, plots, or provisional interpretation.
 
 Fixed corrections are owner-selected heuristics, without individual uncertainty bounds. Farkas
 changes only PaCO2; pH retains +0.04. All applicability is unassessed. Its conservative agreement
@@ -68,9 +68,9 @@ range is not individual confidence or a joint pH/CO2 region. The combined provis
 has not been clinically validated and does not establish chronicity. BE is optional throughout.
 
 The bottom formulas/evidence box remains expandable; general research/privacy wording appears
-once in the footer. Numerical failure preserves independent results.
+once in the footer, alongside build version and short commit (or an explicit local/unbound label). A positive point survives an unavailable/nonphysical interval; numerical failure never silently selects a different method.
 
-The live schemas are `vbg_explorer_request/5.0` and `vbg_explorer_result/5.0`, without compatibility
+The live schemas are `vbg_explorer_request/5.0` and `vbg_explorer_result/6.0`, without compatibility
 shims. See the [interpretation specification and synthetic examples](docs/INTERPRETATION_SPEC.md),
 [clinical scope](docs/CLINICAL_SCOPE.md), and [evidence record](docs/EVIDENCE.md).
 
@@ -134,7 +134,7 @@ patient-specific interpretation, or emergency support.
 
 ## Version, citation, and license
 
-Version `0.5.0` is the current public research preview. The hosted Explorer is deployed only from
+Version `0.6.0` is the current public research preview. The hosted Explorer is deployed only from
 the reviewed `main` commit and publishes that exact source identity in `release-manifest.json`.
 Cite the manifest commit or the exact source commit used. Structured citation metadata are in
 [CITATION.cff](CITATION.cff). Repository-authored code is available under the [MIT License](LICENSE),

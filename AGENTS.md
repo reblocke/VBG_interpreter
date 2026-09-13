@@ -22,9 +22,10 @@ browser workflow or copy an upstream formula already exposed by the pinned depen
 - Do not estimate arterial oxygenation, PaO₂, A–a gradient, P/F ratio, tissue hypoxia, oxygen
   extraction, or arterial SBE.
 - Keep measured gas coordinates, HH-derived coordinates, calculated venous SBE, and modeled
-  arterial values separate. Only measured source coordinates enter the fixed/Farkas estimates.
+  arterial values separate. Supplied or HH-reconstructed gas coordinates may enter fixed/Farkas estimates; preserve the chain.
+  Reconstructed coordinates never become independent measurements or physiology bounds.
 - Saturation is same-sample by field definition. Do not restore the clinical-context questionnaire;
-  the only sample-context selector is Peripheral / Central / Unknown. Farkas requires explicit peripheral identity. Applicability remains explicitly unassessed. BE stays optional.
+  the only sample-context selector is Peripheral / Central / Unknown. Farkas uses saturation for Peripheral or conditionally Unknown; Central uses the fixed heuristic. Applicability remains explicitly unassessed. BE stays optional.
 - Coordinate plots display results only; their reference cross is not a diagnostic boundary.
 - Standard BE may be reported or calculated with the approved Van Slyke method at assumed 37°C;
   retain its provenance in venous Stewart output. Actual/unknown BE is not automatically SBE.

@@ -36,6 +36,11 @@ def modeled_hco3(ph: Calculation, co2: Calculation) -> Calculation:
             ),
         ),
     )
+    if any(c.selection and c.selection.case_evidence == "CHAINED_UNVALIDATED" for c in (ph, co2)):
+        kwargs["limitations"] += (
+            "The estimated pair includes an HH-reconstructed venous coordinate; "
+            "the chain is unvalidated.",
+        )
     failure = dependency_failure(ph, co2)
     if failure is not None:
         return propagate_failure(calculation("modeled_arterial_hh_v1", **kwargs), failure)
@@ -147,6 +152,11 @@ def assess_estimated_gas(
         "A single gas does not establish chronicity; acute and chronic "
         "comparisons are contextual only.",
     )
+    if any(c.selection and c.selection.case_evidence == "CHAINED_UNVALIDATED" for c in (ph, co2)):
+        limits += (
+            "Provisional interpretation uses an HH-reconstructed venous coordinate; this "
+            "combined chain is unvalidated.",
+        )
     failure = dependency_failure(ph, co2, hco3)
     if failure is not None:
         return ProvisionalInterpretation(
@@ -174,25 +184,29 @@ def interpretation_sensitivity(
             "scenarios": [],
             "summary": "Gas-only sensitivity is unavailable from the usable estimated pair.",
         }
-    if co2.method_id != "farkas_simplified_93_v1":
+    if co2.agreement is None or co2.agreement.status != "AVAILABLE":
         return {
             "status": "NOT_QUANTIFIED",
             "scenarios": [],
             "summary": (
-                "Robustness is not quantified: fixed corrections have no sourced "
-                "individual uncertainty interval."
+                "Robustness is not quantified: no usable evaluated CO2 agreement interval "
+                "is available for this input route."
             ),
         }
     scenarios = []
-    for name, key in (("lower", "lower"), ("point", "point"), ("upper", "upper")):
-        scenario_co2 = replace(co2, values={**co2.values, "point": co2.values[key]})
+    for name, value in (
+        ("lower", co2.agreement.lower),
+        ("point", co2.values["point"]),
+        ("upper", co2.agreement.upper),
+    ):
+        scenario_co2 = replace(co2, values={**co2.values, "point": value})
         hco3 = modeled_hco3(ph, scenario_co2)
         assessment = assess_estimated_gas(ph, scenario_co2, hco3)
         scenarios.append(
             {
                 "name": name,
                 "ph": ph.values["ph"],
-                "pco2": co2.values[key],
+                "pco2": value,
                 "hco3": hco3.values.get("modeled_hco3"),
                 "status": assessment.status.value,
                 "assessment": assessment.assessment,

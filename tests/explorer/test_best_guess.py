@@ -40,7 +40,7 @@ def test_pair_without_be_or_saturation_returns_estimates_and_interpretation():
     r = gas_result()
     assert r.arterial_ph_estimate.values == {"ph": 7.36}
     assert r.arterial_paco2_estimate.values["point"] == 50
-    assert set(r.arterial_paco2_estimate.values) == {"point", "measured_pvco2"}
+    assert set(r.arterial_paco2_estimate.values) == {"point", "source_pvco2"}
     assert r.arterial_paco2_estimate.method_id == "fixed_paco2_offset_v1"
     assert r.modeled_arterial_hco3.values["modeled_hco3"] == pytest.approx(28.25585022254851)
     assert r.provisional_interpretation.status is Status.AVAILABLE
@@ -55,8 +55,8 @@ def test_saturation_selects_farkas_without_second_correction_or_ph_change():
     r = gas_result(venous_o2_saturation=SaturationInput(75, SaturationUnit.PERCENTAGE_POINTS))
     assert r.arterial_ph_estimate.values == {"ph": 7.36}
     assert r.arterial_paco2_estimate.values["point"] == pytest.approx(51.04)
-    assert r.arterial_paco2_estimate.values["lower"] == pytest.approx(41.84)
-    assert r.arterial_paco2_estimate.values["upper"] == pytest.approx(59.78)
+    assert r.arterial_paco2_estimate.agreement.lower == pytest.approx(41.84)
+    assert r.arterial_paco2_estimate.agreement.upper == pytest.approx(59.78)
     assert r.arterial_paco2_estimate.applicability == "APPLICABILITY_UNASSESSED"
     assert r.arterial_paco2_estimate.method_id == "farkas_simplified_93_v1"
 
@@ -81,11 +81,12 @@ def test_single_coordinate_remains_available_without_full_interpretation(ph, pco
     assert r.provisional_interpretation.status is Status.UNAVAILABLE_MISSING_INPUT
 
 
-def test_hh_derived_ph_does_not_become_a_measured_estimation_input():
+def test_hh_derived_ph_supports_chained_estimation_without_becoming_measured():
     r = gas_result(None, 55, hco3_mmol_l=27)
     assert r.venous_gas.calculated_values["ph"].status is Status.AVAILABLE
-    assert r.arterial_ph_estimate.status is Status.UNAVAILABLE_MISSING_INPUT
-    assert r.provisional_interpretation.status is Status.UNAVAILABLE_MISSING_INPUT
+    assert r.arterial_ph_estimate.status is Status.AVAILABLE
+    assert r.arterial_ph_estimate.selection.source_coordinate_origin == "HH_RECONSTRUCTED"
+    assert r.provisional_interpretation.status is Status.AVAILABLE
 
 
 @pytest.mark.parametrize("be", [None, -8, 0, 8])
@@ -115,7 +116,8 @@ def test_invalid_farkas_range_never_silently_falls_back_to_fixed():
     r = gas_result(
         pco2=10, venous_o2_saturation=SaturationInput(75, SaturationUnit.PERCENTAGE_POINTS)
     )
-    assert r.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
+    assert r.arterial_paco2_estimate.status is Status.AVAILABLE
+    assert r.arterial_paco2_estimate.agreement.status == "UNAVAILABLE"
     assert r.arterial_paco2_estimate.method_id == "farkas_simplified_93_v1"
 
 

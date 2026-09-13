@@ -45,15 +45,15 @@ export function renderCoordinatePlots(result) {
       : null;
   // Warned arithmetic stays in the detail cards and cannot stretch the physiology viewport.
   const estimated =
-    phBound !== null &&
-    co2Bound !== null &&
+    pH.selection.interpretation_suitable &&
+    co2.selection.interpretation_suitable &&
     pH.status === "AVAILABLE" &&
     co2.status === "AVAILABLE"
       ? {
           ph: pH.values.ph,
           co2: co2.values.point,
-          lower: co2.values.lower,
-          upper: co2.values.upper,
+          lower: co2.agreement.status === "AVAILABLE" ? co2.agreement.lower : null,
+          upper: co2.agreement.status === "AVAILABLE" ? co2.agreement.upper : null,
         }
       : null;
   const xRange = paddedRange([phBound, estimated?.ph], 7, 7.8);
@@ -80,9 +80,11 @@ export function renderCoordinatePlots(result) {
     yRange,
     "estimated",
     null,
+    [pH, co2].flatMap((c) => c.limitations.filter((text) =>
+      /^(Best guess using|Farkas estimate assumes|Agreement is peripheral-study)/.test(text))),
   );
 }
-function draw(id, title, point, xr, yr, kind, direction) {
+function draw(id, title, point, xr, yr, kind, direction, qualifications = []) {
   const parent = document.getElementById(id);
   parent.replaceChildren();
   const partial =
@@ -333,5 +335,6 @@ function draw(id, title, point, xr, yr, kind, direction) {
         `Vertical whisker: Farkas agreement range ${number(point.lower)}–${number(point.upper)} mmHg. CO₂ agreement only; pH uncertainty is not quantified.`,
       ),
     );
+  for (const text of qualifications) figure.append(html("p", text));
   parent.append(figure);
 }

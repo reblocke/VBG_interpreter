@@ -1,6 +1,6 @@
 # Evidence and provenance
 
-This record describes the v0.5 research/educational contract. Passing synthetic checks does not
+This record describes the v0.6 research/educational contract. Passing synthetic checks does not
 validate the full Explorer, establish analyzer equivalence, or support clinical management.
 
 ## Venous gas and standard base excess
@@ -37,8 +37,8 @@ No actual-Hb, temperature-correction, corrected-SBE, or analyzer-matching model 
 
 ## Arterial estimates and provisional interpretation
 
-The owner selected rough point corrections on 2026-09-12: arterial pH = measured venous pH +0.04,
-and PaCO2 = measured PvCO2 −5 mmHg unless the sample is explicitly peripheral with supplied same-sample saturation. These exact offsets are product
+The owner selected rough point corrections on 2026-09-12: arterial pH = resolved venous pH +0.04,
+and PaCO2 = resolved PvCO2 −5 mmHg unless the sample is Peripheral or Unknown with supplied same-sample saturation. These exact offsets are product
 heuristics, not claims that population agreement establishes an individual correction. Byrne AL
 et al. Peripheral venous and arterial blood gas analysis in adults: are they comparable?
 *Respirology*. 2014;19:168–175. [doi:10.1111/resp.12225](https://doi.org/10.1111/resp.12225)
@@ -46,21 +46,20 @@ reports a pooled pH difference near 0.03 and variability in CO2 agreement. That 
 context for limitations, not validation of this combined algorithm. No individual fixed-offset
 uncertainty range is supplied.
 
-With an explicitly peripheral sample and unit-explicit same-sample venous saturation, the PaCO2 method becomes:
-`estimated PaCO2 = measured PvCO2 − 0.22 × (93 − venous saturation%)`.
+With a Peripheral sample, or Unknown under an explicit peripheral assumption, and unit-explicit same-sample venous saturation, the PaCO2 method becomes:
+`estimated PaCO2 = resolved PvCO2 − 0.22 × (93 − venous saturation%)`.
 This replaces the −5 correction; pH retains +0.04. The component is
 `farkas_simplified_93_v1`, described in the Farkas public manuscript and evaluated by Jörg M,
 Öster M, Wretborn J, Wilhelms DB. Agreement of pCO2 in venous to arterial blood gas conversion
 models in undifferentiated emergency patients. *Intensive Care Medicine Experimental*.
 2023;11:80. [doi:10.1186/s40635-023-00564-w](https://doi.org/10.1186/s40635-023-00564-w).
 
-The study used upper-extremity peripheral sampling. The v0.5 form records only Peripheral / Central / Unknown and restricts Farkas to explicit peripheral samples. It does not assess perfusion, treatment changes, preanalytic issues or supplemental oxygen. All applicability is
+The study used upper-extremity peripheral sampling. The v0.6 form records only Peripheral / Central / Unknown and uses Farkas for Peripheral and conditionally Unknown; Central retains the fixed heuristic. It does not assess perfusion, treatment changes, preanalytic issues or supplemental oxygen. All applicability is
 explicitly unassessed. Same-sample meaning belongs to the saturation field itself; no extra
 confirmation is required. The conservative published oxygen-profile estimate-minus-arterial
 errors −8.74 to +9.20 mmHg produce the range [estimate −9.20, estimate +8.74]. It is population
-agreement, not individual confidence or a jointly validated pH/CO2 region. Nonpositive or
-nonfinite point/range values cause local refusal without clamping or fallback. Saturation above
-93% retains the model-reference caveat. SpO2/PO2 and derived PvCO2 are not model inputs.
+agreement, not individual confidence or a jointly validated pH/CO2 region. Nonpositive/nonfinite points cause local refusal without clamping or fallback. Invalid endpoints suppress only the interval, preserving a positive finite point. Saturation above
+93% retains the model-reference caveat. SpO2/PO2 are not model inputs. HH-reconstructed PvCO2 supports a labeled unvalidated chain with no transferred agreement interval. If only pH is reconstructed, the independent supplied-PvCO2 component may retain its range. Unknown ranges are peripheral-study context under an unconfirmed assumption, not case validation.
 
 Modeled arterial HCO3 uses the same retained HH constants applied to the estimated pH/PaCO2 pair.
 Reported or derived venous HCO3 remains separate. The pinned `stewartlight@f277cac` Boston helper
@@ -101,7 +100,7 @@ Bloom BM, Grundlingh J, Bestwick JP, Harris T. The role of venous blood gas in t
 Department: a systematic review and meta-analysis. *European Journal of Emergency Medicine*.
 2014;21(2):81–88. [doi:10.1097/MEJ.0b013e32836437cf](https://doi.org/10.1097/MEJ.0b013e32836437cf).
 Population agreement summaries are context only. They are not used as individual validated
-conversion coefficients or to construct a joint arterial region in v0.5.
+conversion coefficients or to construct a joint arterial region in v0.6.
 
 Source equations and bibliographic records were checked for this change on 2026-09-12. No
 article, table, figure, standard, patient dataset, or publisher layout is distributed. Existing
@@ -153,12 +152,11 @@ Inclusive normalized intervals: pH 6–8.5; PvCO2 5–250 mmHg; gas and BMP HCO3
 sodium 80–220; chloride 40–200; lactate 0–40; reported BE −60–60 (all mmol/L); albumin 0–80 g/L.
 Finite values outside these intervals remain visible; no correction, unit guessing or confirmation
 is performed. A warned pH/PvCO2 axis is withheld from physiology and dependent whole-gas prose.
-Other usable axes and independent finite arithmetic remain. No second severe-input threshold exists.
+Other usable axes and independent finite arithmetic remain. A Blood gas HCO3 warning alone does not suppress a finite HH chain, plot or provisional interpretation. A flagged supplied pH/PvCO2 operand suppresses dependent chain interpretation, without overwriting it. No second severe-input threshold exists.
 
 Albumin normalization uses explicit g/dL ×10 or g/L unchanged, preserving the original unit/value.
 BMP–gas difference = chemistry total CO2 − venous gas-basis HCO3. Prefer HH from usable measured
-pH/PvCO2 even if a third gas HCO3 was supplied; otherwise use supplied actual gas HCO3 supporting
-an alternate completed pair. Unsupported basis gives partial output. Display timing and basis.
+pH/PvCO2 even if a third gas HCO3 was supplied; otherwise use directly supplied actual gas HCO3 without a completed-pair prerequisite. Unsupported basis gives partial output. Display timing and basis.
 Absolute difference >10 mmol/L is a warning heuristic, not a diagnostic rule. Gas-only prose does
 not reconcile chemistry. External actual versus standardized bicarbonate cannot be identified
 from the number alone; help text explains the intended input. No new source formula was copied.

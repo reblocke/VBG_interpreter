@@ -91,7 +91,7 @@ def test_hh_and_sbe_for_each_pair(gas, axis, target):
     assert coordinate.output_provenance == "CALCULATED_HENDERSON_HASSELBALCH"
     assert result.venous_gas.standard_base_excess.values["sbe"] == pytest.approx(2.563403169179708)
     assert "37°C" in " ".join(result.venous_gas.standard_base_excess.limitations)
-    assert (result.arterial_paco2_estimate.status is Status.AVAILABLE) == ("pco2" in gas)
+    assert result.arterial_paco2_estimate.status is Status.AVAILABLE
 
 
 def test_all_three_preserve_report_and_use_ph_pco2_for_sbe():
@@ -141,12 +141,14 @@ def test_explicit_units_are_equivalent_without_guessing():
     assert low.arterial_paco2_estimate.values["point"] != pytest.approx(51.04)
 
 
-def test_derived_pco2_never_enters_arterial_model():
+def test_derived_pco2_enters_chain_without_evaluated_agreement():
     req = saturated_request(ph=7.32, pco2=None, pco2_unit=None, hco3_mmol_l=27)
     result = interpret_vbg(req)
     assert result.venous_gas.calculated_values["pco2"].status is Status.AVAILABLE
-    assert result.arterial_paco2_estimate.status is Status.UNAVAILABLE_MISSING_INPUT
-    assert result.arterial_paco2_estimate.values == {}
+    assert result.arterial_paco2_estimate.status is Status.AVAILABLE
+    assert result.arterial_paco2_estimate.selection.source_coordinate_origin == "HH_RECONSTRUCTED"
+    assert result.arterial_paco2_estimate.agreement.status == "NOT_QUANTIFIED"
+    assert result.arterial_paco2_estimate.values["point"] == pytest.approx(48.42722434945687)
 
 
 @pytest.mark.parametrize(
@@ -236,15 +238,16 @@ def test_chemistry_arithmetic_failure_does_not_destroy_gas():
 
 def test_nonpositive_interval_is_refused_without_clamping():
     result = interpret_vbg(saturated_request(pco2=5))
-    assert result.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
-    assert result.arterial_paco2_estimate.values == {}
+    assert result.arterial_paco2_estimate.status is Status.AVAILABLE
+    assert result.arterial_paco2_estimate.agreement.status == "UNAVAILABLE"
+    assert result.arterial_paco2_estimate.values["point"] == pytest.approx(1.04)
 
 
 def test_priority_order_and_no_chemistry_imputation():
     result = interpret_vbg(request(pco2=55))
     assert "venous pH" in result.highest_value_next_inputs[0]
-    assert "anion gap" in result.highest_value_next_inputs[1]
-    assert not any("saturation" in x for x in result.highest_value_next_inputs)
+    assert "saturation" in result.highest_value_next_inputs[1]
+    assert "anion gap" in result.highest_value_next_inputs[2]
     assert not any("requires" in line for line in result.unresolved_questions)
     result = interpret_vbg(
         replace(saturated_request(), current_chemistry=CurrentChemistry(140, 105, 24))
@@ -277,11 +280,9 @@ def test_serialization_and_exact_allowed_result_surface():
         "narrative",
     }
     assert set(result.arterial_paco2_estimate.values) == {
-        "measured_pvco2",
+        "source_pvco2",
         "saturation_percent",
         "point",
-        "lower",
-        "upper",
     }
     assert set(result.input_summary) == {
         "schema_version",

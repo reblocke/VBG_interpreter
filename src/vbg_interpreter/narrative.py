@@ -39,10 +39,17 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
             "Available measured and calculated values are shown below; "
             "no arterial estimate is available."
         )
-    if source.venous_o2_saturation is not None and co2.method_id != "farkas_simplified_93_v1":
-        parts.append(
-            "The supplied saturation was not used because the sample is not explicitly peripheral."
-        )
+    for component in (ph, co2):
+        for limitation in component.limitations:
+            if limitation.startswith(
+                (
+                    "Best guess using",
+                    "Farkas estimate assumes",
+                    "Central sample:",
+                    "Agreement interval is nonphysical",
+                )
+            ):
+                parts.append(limitation)
     if provisional.status is CalculationStatus.AVAILABLE:
         parts.append(
             "Provisional gas-only interpretation: "
@@ -75,7 +82,7 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
             disagreement.append(
                 "The Farkas point lies above the conditional venous CO2 upper direction."
             )
-        if "upper" in co2.values and co2.values["upper"] > bound:
+        if co2.agreement.status == "AVAILABLE" and co2.agreement.upper > bound:
             disagreement.append(
                 "The CO2 agreement range extends outside the conditional physiology shading."
             )

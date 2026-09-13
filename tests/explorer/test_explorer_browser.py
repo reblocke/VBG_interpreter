@@ -390,7 +390,7 @@ def test_coordinate_extents_reference_cross_and_no_clipped_points(page, explorer
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
-def test_live_v5_sample_policy_sensitivity_albumin_and_bmp_discrepancy(page, explorer_url):
+def test_live_sample_policy_sensitivity_albumin_and_bmp_discrepancy(page, explorer_url):
     _ready(page, explorer_url)
     expect(page.locator("#sample-type")).to_have_value("UNKNOWN")
     page.locator("#current-ph").fill("7.21")
@@ -400,7 +400,7 @@ def test_live_v5_sample_policy_sensitivity_albumin_and_bmp_discrepancy(page, exp
         page.select_option("#sample-type", sample)
         _submit(page)
         expect(page.locator("#narrative-content")).to_contain_text("sample " + sample.lower())
-        if sample == "PERIPHERAL":
+        if sample != "CENTRAL":
             expect(page.locator("#narrative-content")).to_contain_text("not robust")
             expect(page.locator("#arterial-content")).to_contain_text("25.0 mmHg")
             assert page.locator("#estimated-plot .agreement-whisker").count() == 3
@@ -408,7 +408,7 @@ def test_live_v5_sample_policy_sensitivity_albumin_and_bmp_discrepancy(page, exp
             for text in ("15.8 mmHg", "33.8 mmHg", "6.9 mmol/L", "14.8 mmol/L"):
                 expect(page.locator("#arterial-content")).to_contain_text(text)
         else:
-            expect(page.locator("#narrative-content")).to_contain_text("saturation was not used")
+            expect(page.locator("#narrative-content")).to_contain_text("Central sample:")
             expect(page.locator("#arterial-content")).to_contain_text("24.0 mmHg")
             assert page.locator("#estimated-plot .agreement-whisker").count() == 0
     for field, value in [
