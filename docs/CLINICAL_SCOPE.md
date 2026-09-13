@@ -1,6 +1,6 @@
 # Clinical scope
 
-Version 0.5.0 is the current public research preview. It presents reported venous measurements,
+Version 0.6.0 is the current public research preview. It presents reported venous measurements,
 algebraic calculations, serum chemistry, and caveated arterial estimates with a provisional compensation assessment. It is not
 clinically validated, not medical advice, and not a medical device. It must not be used to
 diagnose, treat, triage, or replace an arterial blood gas when arterial confirmation is required.
@@ -20,14 +20,15 @@ Use synthetic values only; do not enter PHI or real patient data.
   is echoed but never relabeled as standard BE.
 - Fixed arterial estimates use the owner-selected pH +0.04 and PvCO2 −5 mmHg heuristics.
   These are rough point estimates, not individual validated conversions or intervals.
-- Same-sample venous saturation with explicitly peripheral sample type selects Farkas for PaCO2, while pH keeps its
-  fixed correction. SpO2 and PO2 are not accepted substitutes. Only measured source coordinates
-  enter the models; HH-derived venous coordinates do not become independent measurements.
+- Same-sample venous saturation with Peripheral or conditionally Unknown sample type selects Farkas for PaCO2, while pH keeps its
+  fixed correction. SpO2 and PO2 are not accepted substitutes. Supplied or HH-reconstructed gas coordinates
+  enter the estimates; the latter carry a chained/unvalidated label and never become independent measurements. Unknown retains an explicit peripheral assumption; Central uses the fixed heuristic.
 - Only Peripheral / Central / Unknown sample identity is collected; perfusion, treatment-change and preanalytic context are not collected. Every
   estimate is labeled applicability-unassessed; the app does not establish favorable conditions.
-- Farkas retains the conservative published oxygen-profile agreement bounds. They are not
+- Farkas from supplied PvCO2 retains the conservative published oxygen-profile agreement bounds.
+  HH-reconstructed PvCO2 has no evaluated interval; reconstructed pH does not remove the independent CO2 component range. Unknown ranges retain the unconfirmed peripheral assumption. They are not
   patient-specific probability intervals, and do not establish joint pH/CO2 coverage. Invalid
-  endpoints are refused without clamping or silently reverting to the fixed method.
+  endpoints are refused without erasing a positive point, clamping, or silently reverting to the fixed method.
 - Modeled arterial HCO3 is calculated from the estimated pair, separately from venous HCO3.
   The provisional Boston output describes compatibility at that point, not confirmed diagnosis,
   exclusions or chronicity. The combined pH/CO2/interpretation path has no external validation.

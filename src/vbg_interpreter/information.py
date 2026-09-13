@@ -4,22 +4,34 @@ from vbg_interpreter.models import Calculation, SampleType, VbgExplorerRequest
 
 
 def highest_value_next_inputs(
-    request: VbgExplorerRequest, chemistry: dict[str, Calculation]
+    request: VbgExplorerRequest,
+    chemistry: dict[str, Calculation],
+    ph: Calculation,
+    co2: Calculation,
 ) -> tuple[str, ...]:
     source = request.current_vbg
     candidates = []
     if source.ph is None:
         candidates.append(
-            "Measured venous pH would add an independent pH direction and the "
-            "fixed arterial pH estimate."
+            "Measured venous pH would add an independent pH direction and "
+            + (
+                "replace the HH-reconstructed input with a supplied coordinate."
+                if ph.selection.source_coordinate_origin == "HH_RECONSTRUCTED"
+                else "a fixed arterial pH estimate."
+            )
         )
     if source.pco2 is None:
         candidates.append(
-            "Measured PvCO2 would add an independent CO2 direction and an arterial CO2 estimate."
+            "Measured PvCO2 would add an independent CO2 direction and "
+            + (
+                "replace the HH-reconstructed input with a supplied coordinate."
+                if co2.selection.source_coordinate_origin == "HH_RECONSTRUCTED"
+                else "an arterial CO2 estimate."
+            )
         )
     if (
-        source.sample_type is SampleType.PERIPHERAL
-        and source.pco2 is not None
+        source.sample_type is not SampleType.CENTRAL
+        and co2.selection.source_value is not None
         and source.venous_o2_saturation is None
     ):
         candidates.append(

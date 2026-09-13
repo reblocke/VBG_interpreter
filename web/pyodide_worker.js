@@ -131,12 +131,23 @@ if not callable(interpret_browser_request_json):
 `);
 }
 
+let releaseIdentity = null;
+
 async function initializeRuntime() {
   const packagePaths = await fetchManifest();
   const packageFiles = await fetchPackageFiles(packagePaths);
   importScripts(`${PYODIDE_INDEX_URL}pyodide.js`);
   const pyodide = await loadPyodide({ indexURL: PYODIDE_INDEX_URL });
   mountPackages(pyodide, packageFiles);
+  const manifest = JSON.parse(await fetchText("./release-manifest.json"));
+  const version = pyodide.runPython("from vbg_interpreter.version import VERSION\nVERSION");
+  if (manifest.schema_version !== "vbg_explorer_release_manifest/1.0" ||
+      manifest.version !== version ||
+      !(manifest.build_binding === "LOCAL_UNBOUND" && manifest.source_commit === null ||
+        manifest.build_binding === "SOURCE_COMMIT" && /^[0-9a-f]{40}$/.test(manifest.source_commit))) {
+    throw new Error("Build identity does not match the loaded Python package.");
+  }
+  releaseIdentity = manifest;
   return pyodide;
 }
 
@@ -189,7 +200,7 @@ self.addEventListener("message", async (event) => {
   try {
     if (type === "initialize") {
       await getRuntime();
-      self.postMessage({ id, type: "ready", payload: { ready: true } });
+      self.postMessage({ id, type: "ready", payload: { ready: true, release: releaseIdentity } });
       return;
     }
     if (type === "interpret") {

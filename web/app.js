@@ -236,7 +236,11 @@ async function handleSubmit(event) {
 }
 
 const workerClient = createWorkerClient({
-  onReady() {
+  onReady(payload) {
+    const release = payload?.release;
+    document.getElementById("build-identity").textContent = release
+      ? `Public research preview v${release.version} · ${release.source_commit ? release.source_commit.slice(0, 7) : "local build, commit unbound"}.`
+      : "Public research preview · build identity unavailable.";
     state.engineReady = true;
     state.pendingGeneration = null;
     refs.retryButton.hidden = true;

@@ -1,5 +1,7 @@
 """Independent serum calculations and a provenance-preserving venous Stewart adapter."""
 
+import math
+
 from vbg_interpreter.evidence import calculation, propagate_failure
 from vbg_interpreter.models import (
     Calculation,
@@ -128,9 +130,7 @@ def _partition(request: VbgExplorerRequest, gas: VenousGas) -> Calculation:
         return calculation(method, domain_refusal=True, **kwargs)
 
 
-def bicarbonate_comparison(
-    request: VbgExplorerRequest, gas: VenousGas, blocked: set[str]
-) -> Calculation:
+def bicarbonate_comparison(request: VbgExplorerRequest, blocked: set[str]) -> Calculation:
     from vbg_interpreter.normalize import normalize_pco2_to_mmhg
     from vbg_interpreter.venous_gas import hco3_from_ph_pco2
 
@@ -144,14 +144,12 @@ def bicarbonate_comparison(
             value = hco3_from_ph_pco2(
                 ph=source.ph, pco2_mmhg=normalize_pco2_to_mmhg(source.pco2, source.pco2_unit)
             )
+            failed = not math.isfinite(value) or value <= 0
         except (ArithmeticError, ValueError):
             failed = True
-    elif (
-        not blocked
-        and source.hco3_mmol_l is not None
-        and any(c.status is CalculationStatus.AVAILABLE for c in gas.calculated_values.values())
-    ):
-        basis, value = "SUPPLIED_BLOOD_GAS_HCO3_COMPLETED_PAIR", source.hco3_mmol_l
+    if (value is None or not math.isfinite(value) or value <= 0) and source.hco3_mmol_l is not None:
+        basis, value = "SUPPLIED_BLOOD_GAS_HCO3", source.hco3_mmol_l
+        failed = False
     limits = (
         "BMP HCO3 is chemistry total CO2, distinct from gas bicarbonate. "
         "Timing, method and preanalytic differences can contribute; the "

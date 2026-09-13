@@ -25,23 +25,23 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
         raise TypeError("request must be VbgExplorerRequest.")
     gas = complete_venous_gas(request.current_vbg)
     chemistry = calculate_chemistry(request, gas)
-    estimate = estimate_arterial_paco2(request)
-    ph = estimate_arterial_ph(request)
-    hco3 = modeled_hco3(ph, estimate)
     observations = input_observations(request)
     blocked = unreliable_axes(observations)
+    estimate = estimate_arterial_paco2(request, gas, blocked)
+    ph = estimate_arterial_ph(request, gas, blocked)
+    hco3 = modeled_hco3(ph, estimate)
     direction = direction_metadata(request, observations)
     if "ph" in blocked:
         gas = replace(gas, ph_reference_position=None)
-    chemistry["bmp_gas_bicarbonate_comparison"] = bicarbonate_comparison(request, gas, blocked)
+    chemistry["bmp_gas_bicarbonate_comparison"] = bicarbonate_comparison(request, blocked)
     interpretation_ph = (
         replace(ph, status=CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT)
-        if "ph" in blocked
+        if blocked.intersection(ph.selection.source_field_ids)
         else ph
     )
     interpretation_co2 = (
         replace(estimate, status=CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT)
-        if "pco2" in blocked
+        if blocked.intersection(estimate.selection.source_field_ids)
         else estimate
     )
     provisional = assess_estimated_gas(interpretation_ph, interpretation_co2, hco3)
@@ -87,7 +87,7 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
         modeled_arterial_hco3=hco3,
         provisional_interpretation=provisional,
         unresolved_questions=tuple(unresolved),
-        highest_value_next_inputs=highest_value_next_inputs(request, chemistry),
+        highest_value_next_inputs=highest_value_next_inputs(request, chemistry, ph, estimate),
         methods=deepcopy(METHODS),
         input_observations=observations,
         physiology_direction=direction,

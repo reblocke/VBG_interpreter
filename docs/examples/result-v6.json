@@ -1,48 +1,113 @@
 {
   "arterial_paco2_estimate": {
+    "agreement": {
+      "lower": 41.84,
+      "reason_code": "PERIPHERAL_STUDY_COMPARISON",
+      "status": "AVAILABLE",
+      "units": "mmHg",
+      "upper": 59.78
+    },
     "applicability": "APPLICABILITY_UNASSESSED",
     "evidence_tier": "EXTERNALLY_EVALUATED",
     "input_origins": {
-      "pco2": "MEASURED_OR_REPORTED_VENOUS",
-      "sample_type": "PERIPHERAL",
-      "venous_saturation": "REPORTED_SAME_SAMPLE_VENOUS"
+      "pco2": "MEASURED_OR_REPORTED",
+      "venous_saturation": "MEASURED_OR_REPORTED"
     },
     "limitations": [
       "Applicability is unassessed. Venous–arterial differences vary with sampling, perfusion and clinical state; these estimates do not establish arterial measurements.",
       "Farkas PaCO2 component externally evaluated in peripheral samples; this combined pH/CO2 interpretation is not externally validated.",
-      "Conservative published oxygen-profile agreement range; not a patient-specific confidence interval or joint pH/CO2 region."
+      "Conservative published peripheral-study agreement range; not a patient-specific confidence interval or joint pH/CO2 region."
     ],
     "method_id": "farkas_simplified_93_v1",
     "missing_inputs": [],
     "output_provenance": "MODEL_BASED_ARTERIAL_ESTIMATE",
+    "selection": {
+      "case_evidence": "SUPPLIED_INPUT",
+      "derivation_method_id": null,
+      "interpretation_suitable": true,
+      "model_scope": "PERIPHERAL_CATEGORY_MATCH",
+      "reason_codes": [
+        "FARKAS_SUPPLIED_PVCO2_AND_SATURATION"
+      ],
+      "sample_type_as_entered": "PERIPHERAL",
+      "source_coordinate_origin": "SUPPLIED",
+      "source_field_ids": [
+        "pco2",
+        "venous_saturation"
+      ],
+      "source_status": "AVAILABLE",
+      "source_value": 55.0,
+      "source_values": {
+        "pco2": {
+          "basis": "MEASURED_OR_REPORTED",
+          "normalized_mmhg": 55.0,
+          "provenance": "MEASURED_OR_REPORTED",
+          "units": "mmHg",
+          "value": 55.0
+        },
+        "venous_saturation": {
+          "provenance": "MEASURED_OR_REPORTED",
+          "units": "PERCENTAGE_POINTS",
+          "value": 75.0
+        }
+      }
+    },
     "status": "AVAILABLE",
     "units": {
-      "lower": "mmHg",
-      "measured_pvco2": "mmHg",
       "point": "mmHg",
       "saturation_percent": "%",
-      "upper": "mmHg"
+      "source_pvco2": "mmHg"
     },
     "values": {
-      "lower": 41.84,
-      "measured_pvco2": 55.0,
       "point": 51.04,
       "saturation_percent": 75.0,
-      "upper": 59.78
+      "source_pvco2": 55.0
     }
   },
   "arterial_ph_estimate": {
+    "agreement": {
+      "lower": null,
+      "reason_code": "NO_EVALUATED_INTERVAL",
+      "status": "NOT_QUANTIFIED",
+      "units": "mmHg",
+      "upper": null
+    },
     "applicability": "APPLICABILITY_UNASSESSED",
     "evidence_tier": "OWNER_SELECTED_HEURISTIC",
     "input_origins": {
-      "ph": "MEASURED_OR_REPORTED_VENOUS"
+      "ph": "MEASURED_OR_REPORTED"
     },
     "limitations": [
+      "Applicability is unassessed. Venous–arterial differences vary with sampling, perfusion and clinical state; these estimates do not establish arterial measurements.",
       "Rough fixed pH correction (+0.04); no individual uncertainty interval."
     ],
     "method_id": "fixed_ph_offset_v1",
     "missing_inputs": [],
     "output_provenance": "HEURISTIC_ARTERIAL_ESTIMATE",
+    "selection": {
+      "case_evidence": "SUPPLIED_INPUT",
+      "derivation_method_id": null,
+      "interpretation_suitable": true,
+      "model_scope": "UNASSESSED",
+      "reason_codes": [
+        "PH_FIXED_HEURISTIC"
+      ],
+      "sample_type_as_entered": "PERIPHERAL",
+      "source_coordinate_origin": "SUPPLIED",
+      "source_field_ids": [
+        "ph"
+      ],
+      "source_status": "AVAILABLE",
+      "source_value": 7.32,
+      "source_values": {
+        "ph": {
+          "basis": "MEASURED_OR_REPORTED",
+          "provenance": "MEASURED_OR_REPORTED",
+          "units": "pH units",
+          "value": 7.32
+        }
+      }
+    },
     "status": "AVAILABLE",
     "units": {
       "ph": "pH units"
@@ -53,6 +118,7 @@
   },
   "chemistry": {
     "anion_gap": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DERIVED_CALCULATION",
       "input_origins": {
@@ -66,6 +132,7 @@
       "method_id": "serum_anion_gap_v1",
       "missing_inputs": [],
       "output_provenance": "DERIVED_CALCULATION",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "anion_gap": "mmol/L"
@@ -75,6 +142,7 @@
       }
     },
     "bmp_gas_bicarbonate_comparison": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DESCRIPTIVE_COMPARISON",
       "input_origins": {
@@ -87,6 +155,7 @@
       "method_id": "bmp_gas_hco3_difference_v1",
       "missing_inputs": [],
       "output_provenance": "DERIVED_CALCULATION",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "bmp_hco3": "mmol/L",
@@ -102,6 +171,7 @@
       }
     },
     "corrected_anion_gap": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DERIVED_CALCULATION",
       "input_origins": {
@@ -116,6 +186,7 @@
       "method_id": "albumin_corrected_anion_gap_v1",
       "missing_inputs": [],
       "output_provenance": "DERIVED_CALCULATION",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "corrected_anion_gap": "mmol/L"
@@ -125,6 +196,7 @@
       }
     },
     "sodium_chloride_difference": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DERIVED_CALCULATION",
       "input_origins": {
@@ -137,6 +209,7 @@
       "method_id": "sodium_chloride_difference_v1",
       "missing_inputs": [],
       "output_provenance": "DERIVED_CALCULATION",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "sodium_chloride_difference": "mmol/L"
@@ -146,6 +219,7 @@
       }
     },
     "venous_stewart_partition": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "IMPLEMENTED_SOFTWARE_RULESET",
       "input_origins": {
@@ -167,6 +241,7 @@
       "method_id": "stewartlight_venous_partition_v1",
       "missing_inputs": [],
       "output_provenance": "VENOUS_BASIS_PARTITION",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "albumin_component": "mmol/L",
@@ -327,21 +402,21 @@
       ]
     },
     "farkas_simplified_93_v1": {
-      "description": "Estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample saturation%).",
+      "description": "Estimated PaCO2 = resolved PvCO2 − 0.22 × (93 − same-sample saturation%).",
       "evidence_tier": "EXTERNALLY_EVALUATED",
       "sources": [
         "https://doi.org/10.1186/s40635-023-00564-w"
       ]
     },
     "fixed_paco2_offset_v1": {
-      "description": "Estimated PaCO2 = measured PvCO2(mmHg) − 5; rough fixed correction.",
+      "description": "Estimated PaCO2 = resolved PvCO2(mmHg) − 5; rough fixed correction.",
       "evidence_tier": "OWNER_SELECTED_HEURISTIC",
       "sources": [
         "docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"
       ]
     },
     "fixed_ph_offset_v1": {
-      "description": "Estimated arterial pH = measured venous pH + 0.04; rough fixed correction.",
+      "description": "Estimated arterial pH = resolved venous pH + 0.04; rough fixed correction.",
       "evidence_tier": "OWNER_SELECTED_HEURISTIC",
       "sources": [
         "docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"
@@ -403,6 +478,7 @@
     }
   },
   "modeled_arterial_hco3": {
+    "agreement": null,
     "applicability": null,
     "evidence_tier": "DERIVED_FROM_ESTIMATES",
     "input_origins": {
@@ -415,6 +491,7 @@
     "method_id": "modeled_arterial_hh_v1",
     "missing_inputs": [],
     "output_provenance": "CALCULATED_FROM_ARTERIAL_ESTIMATES",
+    "selection": null,
     "status": "AVAILABLE",
     "units": {
       "modeled_hco3": "mmol/L"
@@ -494,7 +571,7 @@
     "output_provenance": "PROVISIONAL_ESTIMATED_GAS_INTERPRETATION",
     "status": "AVAILABLE"
   },
-  "schema_version": "vbg_explorer_result/5.0",
+  "schema_version": "vbg_explorer_result/6.0",
   "screening": {
     "evidence_tier": "NOT_CONFIGURED",
     "input_origins": {},
@@ -507,13 +584,14 @@
     "units": {},
     "values": {}
   },
-  "software_version": "0.5.0",
+  "software_version": "0.6.0",
   "unresolved_questions": [
     "Arterial pH, arterial oxygenation, and a complete arterial acid–base interpretation are not established."
   ],
   "venous_gas": {
     "calculated_values": {
       "hco3": {
+        "agreement": null,
         "applicability": null,
         "evidence_tier": "DERIVED_CALCULATION",
         "input_origins": {
@@ -526,6 +604,7 @@
         "method_id": "henderson_hasselbalch_v1",
         "missing_inputs": [],
         "output_provenance": "CALCULATED_HENDERSON_HASSELBALCH",
+        "selection": null,
         "status": "AVAILABLE",
         "units": {
           "hco3": "mmol/L"
@@ -536,6 +615,7 @@
       }
     },
     "consistency": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DERIVED_CALCULATION",
       "input_origins": {
@@ -550,6 +630,7 @@
         "hco3"
       ],
       "output_provenance": "DERIVED_CALCULATION",
+      "selection": null,
       "status": "UNAVAILABLE_MISSING_INPUT",
       "units": {},
       "values": {}
@@ -576,6 +657,7 @@
     },
     "ph_reference_position": "below",
     "standard_base_excess": {
+      "agreement": null,
       "applicability": null,
       "evidence_tier": "DERIVED_CALCULATION",
       "input_origins": {
@@ -590,6 +672,7 @@
       "method_id": "venous_sbe_van_slyke_37c_v1",
       "missing_inputs": [],
       "output_provenance": "CALCULATED_VAN_SLYKE",
+      "selection": null,
       "status": "AVAILABLE",
       "units": {
         "sbe": "mmol/L"

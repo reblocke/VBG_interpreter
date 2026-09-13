@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0] - 2026-09-12
+
+- Select Farkas conditionally for Unknown with saturation; preserve Central fixed selection.
+- Allow explicitly HH-chained best guesses with source provenance and no evaluated interval for reconstructed PvCO2.
+- Separate positive point validity from agreement validity; guard sensitivity and plotting.
+- Compare directly supplied bicarbonates without a completed gas. Preserve warning-only HCO3 chains.
+- Unify output methods/provenance, allow chained Best guess plots, and show existing build identity.
+- Keep request 5.0, introduce result 6.0, and verify full availability plus factored metadata/unit products.
+
 ## [0.5.0] - 2026-09-12
 
 - Add conditional physiology narrative and directional shading from usable measured axes.

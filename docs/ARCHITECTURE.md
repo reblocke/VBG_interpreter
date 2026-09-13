@@ -1,6 +1,6 @@
 # Architecture
 
-The v0.5 Explorer is one static research/educational app with one public Python interpretation
+The v0.6 Explorer is one static research/educational app with one public Python interpretation
 entry point, `vbg_interpreter.interpret_vbg`. Python determines capability availability;
 JavaScript validates input shape and renders the result without repeating scientific inference.
 
@@ -8,14 +8,17 @@ JavaScript validates input shape and renders the result without repeating scient
 
 A strict `vbg_explorer_request/5.0` contains current VBG values and optional current chemistry. At least one VBG value is required. Each dependent calculation handles missing
 operands, known scope exclusions, and numerical-domain refusal locally. Results use
-`vbg_explorer_result/5.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
+`vbg_explorer_result/6.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
 
 - `models.py` defines compact input/result contracts. `mapping.py` preserves the strict JSON
   boundary, including decimal strings, exact keys, explicit units, and duplicate rejection.
 - `venous_gas.py` echoes source measurements, completes missing gas coordinates using HH, and
   selects reported standard base excess or calculates venous-basis SBE with the approved
   normothermic Van Slyke equation.
-- `arterial_paco2.py` reads measured pH/PvCO2 and optional same-sample saturation. It selects Farkas only for explicit peripheral samples; central/unknown uses fixed CO2. Applicability remains unassessed.
+- `selection.py` resolves per-component supplied/HH coordinate provenance and chooses methods.
+  `arterial_paco2.py` calculates those points and separately evaluates agreement availability.
+  Saturation selects Farkas for Peripheral or conditionally Unknown; Central uses fixed CO2.
+  Formula evidence and case applicability remain distinct; chained PvCO2 has no evaluated range.
 - `best_guess.py` calculates modeled arterial bicarbonate and calls the pinned Boston helper using a four-attribute gas-only adapter. It never fabricates BE/chemistry or infers chronicity.
 - `chemistry.py` computes serum AG, corrected AG, Na−Cl, and the optional venous Stewart partition.
 - `observations.py` owns warning-only input sanity; `physiology.py` produces measured-axis conditional directions for both prose and shading.
@@ -36,7 +39,9 @@ separate documented derivation, not new upstream or clinical validation.
 `scripts/build_web.py` replaces ignored `.build/web/`, copying `web/` and staging the installed
 Explorer and pinned upstream Python package. It creates a deterministic package manifest and
 release manifest. No generated package copy is committed. The self-hosted Pyodide worker loads
-only same-origin assets and invokes the single JSON browser adapter.
+only same-origin assets and invokes the single JSON browser adapter. It checks release-manifest
+version against the loaded Python VERSION and returns build identity for the footer. This version
+check does not prove asset-byte identity; staged/live asset comparisons remain verification tasks.
 
 The form has VBG and optional chemistry sections. Results have “What’s known” and “Best guess”
 sections with measured versus estimated pH × CO2 plots, followed by uncertainty and expandable

@@ -27,12 +27,12 @@ METHODS = {
     },
     "fixed_ph_offset_v1": {
         "evidence_tier": "OWNER_SELECTED_HEURISTIC",
-        "description": "Estimated arterial pH = measured venous pH + 0.04; rough fixed correction.",
+        "description": "Estimated arterial pH = resolved venous pH + 0.04; rough fixed correction.",
         "sources": ["docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"],
     },
     "fixed_paco2_offset_v1": {
         "evidence_tier": "OWNER_SELECTED_HEURISTIC",
-        "description": "Estimated PaCO2 = measured PvCO2(mmHg) − 5; rough fixed correction.",
+        "description": "Estimated PaCO2 = resolved PvCO2(mmHg) − 5; rough fixed correction.",
         "sources": ["docs/EVIDENCE.md#arterial-estimates-and-provisional-interpretation"],
     },
     "modeled_arterial_hh_v1": {
@@ -69,7 +69,7 @@ METHODS = {
     },
     "farkas_simplified_93_v1": {
         "evidence_tier": "EXTERNALLY_EVALUATED",
-        "description": "Estimated PaCO2 = measured PvCO2 − 0.22 × (93 − same-sample saturation%).",
+        "description": "Estimated PaCO2 = resolved PvCO2 − 0.22 × (93 − same-sample saturation%).",
         "sources": ["https://doi.org/10.1186/s40635-023-00564-w"],
     },
     "serum_anion_gap_v1": {
