@@ -76,9 +76,10 @@ def _partition(request: VbgExplorerRequest, gas: VenousGas) -> Calculation:
         "chloride": chem.chloride_mmol_l,
         "albumin": chem.albumin_g_l,
     }
-    if chem.albumin is not None and chem.albumin_g_l is None:
-        return calculation("stewartlight_venous_partition_v1", domain_refusal=True)
-    missing = [k for k, v in operands.items() if v is None]
+    albumin_failed = chem.albumin is not None and chem.albumin_g_l is None
+    missing = [
+        k for k, v in operands.items() if v is None and not (k == "albumin" and albumin_failed)
+    ]
     if sbe.status is CalculationStatus.UNAVAILABLE_MISSING_INPUT:
         missing.append("reported or calculable venous standard base excess")
     if chem.relationship_to_vbg is ChemistryTimeRelationship.UNKNOWN:
@@ -99,6 +100,8 @@ def _partition(request: VbgExplorerRequest, gas: VenousGas) -> Calculation:
     method = "stewartlight_venous_partition_v1"
     if missing or outside:
         return calculation(method, missing=tuple(missing), outside=outside, **kwargs)
+    if albumin_failed:
+        return calculation(method, domain_refusal=True, **kwargs)
     if sbe.status is not CalculationStatus.AVAILABLE:
         return propagate_failure(calculation(method, **kwargs), sbe)
     try:

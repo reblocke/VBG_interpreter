@@ -76,9 +76,11 @@ reconstructed pH, and recompute HH at each CO2 value.
 Only absent axes may be reconstructed with retained HH constants, using actual same-gas HCO3.
 Supplied coordinates are never overwritten; BMP HCO3 and BE cannot reconstruct gas coordinates.
 All estimates remain applicability-unassessed. Modeled arterial HCO3 uses only the estimated
-pair, followed by unchanged pinned Boston rules. A Blood gas HCO3 warning alone does not suppress
-finite chained arithmetic, plotting or provisional interpretation; supplied pH/PvCO2 warnings
-continue to suppress dependent interpretation and measured directions, including dependent chains.
+pair, followed by unchanged pinned Boston rules. A sanity warning on a consumed Blood gas HCO3
+operand or an HH-derived coordinate retains finite arithmetic but withholds dependent classification,
+sensitivity and estimated paired plots. Supplied pH/PvCO2 warnings also suppress their measured
+directions. Unused third-coordinate warnings do not suppress an independent supplied pair.
+See ADR 0008 for the owner-approved policy superseding ADR 0007.
 
 Reported STANDARD BE (including zero) takes precedence; otherwise existing gas-pair SBE at
 37°C applies. Actual/unknown BE is not SBE. Chemistry remains independent; Stewart requires

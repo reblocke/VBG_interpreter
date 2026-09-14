@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2026-09-14
+
+- Check HH-derived coordinates and propagate sanity warnings through actual dependencies; retain finite arithmetic while withholding affected classifications, sensitivity and estimated paired plots. Supersedes the v0.6 bicarbonate-warning policy.
+- Shorten summaries, show route-specific qualifications and plot legends, and collapse missing optional calculations. Make the BMP subtraction basis explicit.
+- Result schema 6.1; strict request schema remains 5.0. Formulas and method selection are unchanged.
+
 ## [0.6.0] - 2026-09-12
 
 - Select Farkas conditionally for Unknown with saturation; preserve Central fixed selection.

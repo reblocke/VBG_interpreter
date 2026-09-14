@@ -13,7 +13,7 @@ from vbg_interpreter.models import (
 
 
 def select_component(
-    source: CurrentVbg, gas: VenousGas, axis: Literal["ph", "pco2"], blocked: set[str]
+    source: CurrentVbg, gas: VenousGas, axis: Literal["ph", "pco2"]
 ) -> tuple[str, ArterialSelection]:
     supplied = getattr(source, axis) is not None
     fields = (axis,) if supplied else ("pco2", "hco3") if axis == "ph" else ("ph", "hco3")
@@ -84,6 +84,22 @@ def select_component(
         else "CHAINED_UNVALIDATED"
         if value is not None
         else "UNAVAILABLE",
-        # Only supplied pH/PCO2 warnings suppress dependent interpretation. HCO3 warnings do not.
-        interpretation_suitable=value is not None and not blocked.intersection(fields),
+        interpretation_suitable=value is not None,
+    )
+
+
+def route_label(component):
+    """Describe this input route separately from formula-level evidence."""
+    if component.selection.case_evidence == "CHAINED_UNVALIDATED":
+        return "Chained estimate; uncertainty unquantified" + (
+            "; assumes peripheral sampling"
+            if component.selection.model_scope == "PERIPHERAL_ASSUMPTION"
+            else ""
+        )
+    if component.method_id != "farkas_simplified_93_v1":
+        return "Rough fixed correction"
+    return (
+        "Assumes peripheral sampling"
+        if component.selection.model_scope == "PERIPHERAL_ASSUMPTION"
+        else "Peripheral model estimate"
     )

@@ -19,7 +19,7 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
-      <p class="eyebrow">Research / educational software · v0.6</p>
+      <p class="eyebrow">Research / educational software · v0.6.1</p>
       <h1>VBG Acid–Base Explorer</h1>
       <p class="lede">
         Enter the VBG and chemistry values you have. See what those inputs
@@ -54,10 +54,9 @@
               <legend>VBG</legend>
               <p>
                 Enter at least one value. Any two of pH, PvCO₂, and blood-gas
-                HCO₃ allow algebraic completion. Measured pH and PvCO₂ also
-                enable a best-guess arterial interpretation. Same-sample
-                saturation selects Farkas only for an explicitly peripheral
-                sample.
+                HCO₃ allow algebraic completion and qualified arterial estimates.
+                Same-sample saturation selects Farkas for Peripheral, or for Unknown
+                under a peripheral assumption. Central uses the fixed correction.
               </p>
               <div class="field-grid">
                 <label for="sample-type"
@@ -297,7 +296,7 @@
         ordinary same-origin hosting requests.
       </p>
       <p>
-        <span id="build-identity">Public research preview v0.6.0 · build identity loading.</span>
+        <span id="build-identity">Public research preview v0.6.1 · build identity loading.</span>
         <a href="https://github.com/reblocke/VBG_interpreter"
           >Source and methods</a
         >.

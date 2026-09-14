@@ -152,7 +152,7 @@ Inclusive normalized intervals: pH 6–8.5; PvCO2 5–250 mmHg; gas and BMP HCO3
 sodium 80–220; chloride 40–200; lactate 0–40; reported BE −60–60 (all mmol/L); albumin 0–80 g/L.
 Finite values outside these intervals remain visible; no correction, unit guessing or confirmation
 is performed. A warned pH/PvCO2 axis is withheld from physiology and dependent whole-gas prose.
-Other usable axes and independent finite arithmetic remain. A Blood gas HCO3 warning alone does not suppress a finite HH chain, plot or provisional interpretation. A flagged supplied pH/PvCO2 operand suppresses dependent chain interpretation, without overwriting it. No second severe-input threshold exists.
+Other usable axes and independent finite arithmetic remain. A warning on a consumed Blood gas HCO3 operand or an HH-reconstructed coordinate withholds dependent interpretation, sensitivity and estimated paired plots, while retaining finite arithmetic. A flagged supplied pH/PvCO2 operand suppresses dependent chain interpretation, without overwriting it. No second severe-input threshold exists.
 
 Albumin normalization uses explicit g/dL ×10 or g/L unchanged, preserving the original unit/value.
 BMP–gas difference = chemistry total CO2 − venous gas-basis HCO3. Prefer HH from usable measured

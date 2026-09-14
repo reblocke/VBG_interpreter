@@ -11,7 +11,7 @@ from vbg_interpreter.serialization import to_primitive
 from vbg_interpreter.version import VERSION
 
 VBG_EXPLORER_REQUEST_SCHEMA_VERSION = "vbg_explorer_request/5.0"
-VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/6.0"
+VBG_EXPLORER_RESULT_SCHEMA_VERSION = "vbg_explorer_result/6.1"
 
 
 class ExplorerInputError(ValueError):
@@ -314,6 +314,8 @@ class Calculation:
     applicability: str | None = None
     selection: ArterialSelection | None = None
     agreement: Agreement | None = None
+    input_warnings: tuple[dict[str, object], ...] = ()
+    route_label: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

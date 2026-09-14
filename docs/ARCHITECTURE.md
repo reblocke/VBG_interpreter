@@ -8,7 +8,7 @@ JavaScript validates input shape and renders the result without repeating scient
 
 A strict `vbg_explorer_request/5.0` contains current VBG values and optional current chemistry. At least one VBG value is required. Each dependent calculation handles missing
 operands, known scope exclusions, and numerical-domain refusal locally. Results use
-`vbg_explorer_result/6.0` and retain supplied, HH-derived, calculated SBE, and modeled origins.
+`vbg_explorer_result/6.1` and retain supplied, HH-derived, calculated SBE, and modeled origins.
 
 - `models.py` defines compact input/result contracts. `mapping.py` preserves the strict JSON
   boundary, including decimal strings, exact keys, explicit units, and duplicate rejection.
@@ -63,3 +63,10 @@ and the current main identity; the release manifest records the same reviewed so
 `make verify` checks formatting, lint, Pyodide integrity, Python contracts, staging, and Chromium
 E2E. `make validation` runs the synthetic scientific capability matrix. Neither is clinical
 validation. Required CI job names remain `verify` and `validation`.
+
+In v0.6.1, observations identify supplied versus HH-derived origin and source fields. Calculation
+warnings are selected from consumed operand provenance; arterial suitability and route labels are
+resolved in Python. Browser rendering uses those results without inferring method identity from
+numbers. Missing numerical prerequisites are collapsed under Additional calculations; context and
+numerical refusals with completed numerical prerequisites stay visible. Formula evidence remains
+in the bottom panel, separately from the particular input route's qualifications.

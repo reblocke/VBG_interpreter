@@ -142,3 +142,15 @@ privacy, evidence, and public-visibility boundaries continue. Publication requir
 verify/validation checks and live source/asset verification. No tag, GitHub Release, clinical
 validation, new rights opinion, or publication of private historical ancestry is authorized.
 Earlier supplements remain historical. The merged PR and live Pages manifest identify the release.
+
+## v0.6.1 source and Pages publication supplement — 2026-09-14
+
+The owner approved implementation of the targeted-review plan, including the dependency-warning
+policy in ADR 0008 and the clearer output presentation. The delivery scope includes a focused,
+CI-gated PR and the same-source Pages update; no tag or GitHub Release is requested. Equations,
+method selection, static architecture, privacy boundary and research-preview scope are unchanged.
+
+Local real-Pyodide tests and GitHub deployment receipts are recorded separately from direct live
+browser acceptance. The saved browser-domain permission must allow access before a fresh live
+smoke and loaded-asset check can close that acceptance item. CI success or public deployment alone
+must not be described as direct live acceptance or clinical validation.

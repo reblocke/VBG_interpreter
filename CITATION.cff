@@ -5,8 +5,8 @@ type: software
 authors:
   - family-names: Locke
     given-names: Brian
-version: 0.6.0
-date-released: 2026-09-12
+version: 0.6.1
+date-released: 2026-09-14
 repository-code: "https://github.com/reblocke/VBG_interpreter"
 url: "https://reblocke.github.io/VBG_interpreter/"
 license: MIT

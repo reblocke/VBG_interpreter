@@ -5,8 +5,8 @@ from dataclasses import replace
 
 from vbg_interpreter.evidence import PACO2_CONSERVATIVE_ERRORS, calculation
 from vbg_interpreter.models import Agreement, Calculation, CalculationStatus, VbgExplorerRequest
-from vbg_interpreter.observations import input_observations, unreliable_axes
-from vbg_interpreter.selection import select_component
+from vbg_interpreter.observations import component_warnings, gas_observations
+from vbg_interpreter.selection import route_label, select_component
 from vbg_interpreter.venous_gas import complete_venous_gas
 
 APPLICABILITY = "APPLICABILITY_UNASSESSED"
@@ -16,12 +16,21 @@ CONTEXT_LIMIT = (
 )
 
 
-def _estimate(request, axis, gas, blocked):
+def _estimate(request, axis, gas, observations):
     if gas is None:
         gas = complete_venous_gas(request.current_vbg)
-    if blocked is None:
-        blocked = unreliable_axes(input_observations(request))
-    method, selection = select_component(request.current_vbg, gas, axis, blocked)
+    if observations is None:
+        observations = gas_observations(request, gas)
+    method, selection = select_component(request.current_vbg, gas, axis)
+    warnings = component_warnings(observations, axis, selection)
+    selection = replace(
+        selection,
+        interpretation_suitable=selection.interpretation_suitable and not warnings,
+        reason_codes=(
+            *selection.reason_codes,
+            *(("DEPENDENCY_SANITY_WARNING",) if warnings else ()),
+        ),
+    )
     chained = selection.case_evidence == "CHAINED_UNVALIDATED"
     farkas = method == "farkas_simplified_93_v1"
     limits = [CONTEXT_LIMIT]
@@ -127,12 +136,15 @@ def _estimate(request, axis, gas, blocked):
         interpretation_suitable=selection.interpretation_suitable
         and result.status is CalculationStatus.AVAILABLE,
     )
-    return replace(result, selection=selection, agreement=agreement)
+    result = replace(result, selection=selection, agreement=agreement, input_warnings=warnings)
+    return replace(result, route_label=route_label(result))
 
 
-def estimate_arterial_ph(request: VbgExplorerRequest, gas=None, blocked=None) -> Calculation:
-    return _estimate(request, "ph", gas, blocked)
+def estimate_arterial_ph(request: VbgExplorerRequest, gas=None, observations=None) -> Calculation:
+    return _estimate(request, "ph", gas, observations)
 
 
-def estimate_arterial_paco2(request: VbgExplorerRequest, gas=None, blocked=None) -> Calculation:
-    return _estimate(request, "pco2", gas, blocked)
+def estimate_arterial_paco2(
+    request: VbgExplorerRequest, gas=None, observations=None
+) -> Calculation:
+    return _estimate(request, "pco2", gas, observations)

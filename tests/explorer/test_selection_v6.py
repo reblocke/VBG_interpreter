@@ -258,7 +258,7 @@ def test_complete_availability_matrix(gas_bits, chem_bits, sample):
     serialized = to_json(r)
     assert serialized == to_json(interpret_vbg(req))
     assert "NaN" not in serialized and "Infinity" not in serialized
-    assert json.loads(serialized)["schema_version"] == "vbg_explorer_result/6.0"
+    assert json.loads(serialized)["schema_version"] == "vbg_explorer_result/6.1"
 
 
 GAS_PROVENANCE = [
@@ -352,9 +352,9 @@ def test_chained_warning_and_supplied_axis_precedence():
     for fields in ({"ph": 7.32, "hco3_mmol_l": 120}, {"pco2": 55, "hco3_mmol_l": 120}):
         r = result(**fields)
         assert r.input_observations
-        assert r.provisional_interpretation.status == "AVAILABLE"
-        assert r.arterial_ph_estimate.selection.interpretation_suitable
-        assert r.arterial_paco2_estimate.selection.interpretation_suitable
+        assert r.provisional_interpretation.status == "UNAVAILABLE_UNRELIABLE_INPUT"
+        assert r.arterial_ph_estimate.selection.interpretation_suitable == ("ph" in fields)
+        assert r.arterial_paco2_estimate.selection.interpretation_suitable == ("pco2" in fields)
     r = result(
         ph=0.32,
         pco2=55,
