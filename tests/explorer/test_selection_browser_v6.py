@@ -22,7 +22,7 @@ def test_default_transitions_identity_and_private_inputs(page, explorer_url):
     page.context.on("request", lambda request: requests.append(request))
     page.context.on("response", lambda response: responses.append(response))
     _ready(page, explorer_url)
-    expect(page.locator("#build-identity")).to_contain_text("v0.6.0 · local build, commit unbound")
+    expect(page.locator("#build-identity")).to_contain_text("v0.6.1 · local build, commit unbound")
     expect(page.locator("#sample-type")).to_have_value("UNKNOWN")
     page.locator("#current-ph").fill("7.32")
     page.locator("#current-pco2").fill("55")
@@ -60,7 +60,11 @@ def test_default_transitions_identity_and_private_inputs(page, explorer_url):
     paths = [
         "pyodide_worker.js",
         "app.js",
+        "js/explorer-rendering.js",
+        "js/coordinate-plots.js",
         "assets/py/vbg_interpreter/selection.py",
+        "assets/py/vbg_interpreter/observations.py",
+        "assets/py/vbg_interpreter/narrative.py",
         "assets/py/vbg_interpreter/arterial_paco2.py",
         "assets/py/vbg_interpreter/version.py",
     ]
@@ -155,9 +159,9 @@ def test_warned_hco3_chain_and_direct_bicarbonates(page, explorer_url):
         _submit(page)
         expect(page.locator("#input-observations")).not_to_be_empty()
         expect(page.locator("#narrative-content")).to_contain_text(
-            "Provisional gas-only interpretation:"
+            "estimated paired plot are withheld"
         )
-        assert page.locator("#estimated-plot .coordinate-point").count() == 1
+        assert page.locator("#estimated-plot .coordinate-point").count() == 0
 
 
 def test_co2_only_units_and_equal_numeric_methods(page, explorer_url):
@@ -167,7 +171,7 @@ def test_co2_only_units_and_equal_numeric_methods(page, explorer_url):
     _submit(page)
     expect(page.locator("#arterial-content")).to_contain_text("51.0 mmHg")
     expect(page.locator("#arterial-content")).to_contain_text(
-        "Requires both available arterial estimates"
+        "Provisional interpretation unavailable"
     )
     assert page.locator("#estimated-plot .coordinate-point").count() == 0
     page.locator("#current-pco2").fill("7.332730262565")
@@ -210,5 +214,5 @@ def test_footer_formats_declared_commit_identity(page, explorer_url):
     )
     _ready(page, explorer_url)
     expect(page.locator("#build-identity")).to_have_text(
-        "Public research preview v0.6.0 · 0123456."
+        "Public research preview v0.6.1 · 0123456."
     )

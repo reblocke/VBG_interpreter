@@ -72,17 +72,22 @@ export function renderCoordinatePlots(result) {
     "measured",
     direction,
   );
-  draw(
-    "estimated-plot",
-    "Estimated arterial coordinates",
-    estimated,
-    xRange,
-    yRange,
-    "estimated",
-    null,
-    [pH, co2].flatMap((c) => c.limitations.filter((text) =>
-      /^(Best guess using|Farkas estimate assumes|Agreement is peripheral-study)/.test(text))),
-  );
+  if (!estimated && pH.status === "AVAILABLE" && co2.status === "AVAILABLE") {
+    document.getElementById("estimated-plot").replaceChildren(html("p",
+      "Estimated paired plot withheld because a required source or HH-reconstructed coordinate has a sanity warning. Finite estimates remain below."));
+  } else {
+    draw(
+      "estimated-plot",
+      "Estimated arterial coordinates",
+      estimated,
+      xRange,
+      yRange,
+      "estimated",
+      null,
+      [pH, co2].flatMap((c) => c.limitations.filter((text) =>
+        /^(Best guess using|Farkas estimate assumes|Agreement is peripheral-study)/.test(text))),
+    );
+  }
 }
 function draw(id, title, point, xr, yr, kind, direction, qualifications = []) {
   const parent = document.getElementById(id);
@@ -306,7 +311,11 @@ function draw(id, title, point, xr, yr, kind, direction, qualifications = []) {
   );
   detail.id = `${id}-description`;
   detail.className = "limitation";
-  figure.append(caption, svg, detail);
+  const legend = html("p", kind === "measured"
+    ? "○ Circle: measured pair · ▨ Hatching: conditional direction"
+    : "□ Square: estimated pair · ↕ Whisker: CO₂-only agreement range");
+  legend.className = "plot-legend";
+  figure.append(caption, svg, legend, detail);
   if (direction) {
     const modelText = html(
       "p",
@@ -319,14 +328,7 @@ function draw(id, title, point, xr, yr, kind, direction, qualifications = []) {
     modelText.id = `${id}-model-description`;
     modelText.className = "visually-hidden";
     figure.append(modelText);
-    figure.append(
-      html("p", direction.caption),
-      html("p", direction.summary),
-      html(
-        "p",
-        "Light hatching shows the conditional direction; short-dashed guides include equality. Unshaded space is not clinically ruled out.",
-      ),
-    );
+    figure.append(html("p", "Conditional direction—not a guaranteed bound or probability region. Unshaded space is not clinically ruled out."));
   }
   if (point && Number.isFinite(point.lower))
     figure.append(

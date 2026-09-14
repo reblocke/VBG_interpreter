@@ -107,9 +107,7 @@ def test_invalid_fixed_estimate_is_local_refusal_not_clamped(pco2):
     assert r.arterial_paco2_estimate.status is Status.MODEL_DOMAIN_REFUSAL
     assert r.arterial_paco2_estimate.values == {}
     assert r.arterial_ph_estimate.values == {"ph": 7.36}
-    assert r.provisional_interpretation.status is (
-        Status.UNAVAILABLE_UNRELIABLE_INPUT if r.input_observations else Status.MODEL_DOMAIN_REFUSAL
-    )
+    assert r.provisional_interpretation.status is Status.MODEL_DOMAIN_REFUSAL
 
 
 def test_invalid_farkas_range_never_silently_falls_back_to_fixed():
@@ -124,9 +122,7 @@ def test_invalid_farkas_range_never_silently_falls_back_to_fixed():
 def test_modeled_hco3_overflow_keeps_ph_and_co2_estimates():
     r = gas_result(ph=400)
     assert r.modeled_arterial_hco3.status is Status.MODEL_DOMAIN_REFUSAL
-    assert r.provisional_interpretation.status is (
-        Status.UNAVAILABLE_UNRELIABLE_INPUT if r.input_observations else Status.MODEL_DOMAIN_REFUSAL
-    )
+    assert r.provisional_interpretation.status is Status.UNAVAILABLE_UNRELIABLE_INPUT
     assert r.arterial_ph_estimate.status is Status.AVAILABLE
     assert r.arterial_paco2_estimate.status is Status.AVAILABLE
 

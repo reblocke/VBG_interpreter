@@ -1,6 +1,6 @@
 # Clinical scope
 
-Version 0.6.0 is the current public research preview. It presents reported venous measurements,
+Version 0.6.1 is the current public research preview. It presents reported venous measurements,
 algebraic calculations, serum chemistry, and caveated arterial estimates with a provisional compensation assessment. It is not
 clinically validated, not medical advice, and not a medical device. It must not be used to
 diagnose, treat, triage, or replace an arterial blood gas when arterial confirmation is required.
@@ -70,3 +70,9 @@ show it; Unknown explicitly labels the systemic-venous assumption. Unshaded spac
 out. Deterministic CO2 sensitivity tests three examples, holds pH fixed, and establishes neither
 probability nor full robustness. Input sanity and >10 mmol/L BMP–gas discrepancy warnings are
 software heuristics, not diagnostic thresholds; no confirmation or clinical questionnaire is added.
+
+The v0.6.1 warning policy also checks HH-derived venous coordinates against the existing software
+sanity intervals. A warning follows consumed dependencies: finite numbers remain available, while
+affected classifications, sensitivity and estimated paired plots are withheld. An unused flagged
+third coordinate does not disable an independent supplied pair. These software checks are neither
+clinical cutoffs nor evidence that an unflagged chain is clinically valid.

@@ -213,7 +213,7 @@ def test_live_fixed_estimates_farkas_and_matching_coordinate_plots(page, explore
     _submit(page)
     expect(page.locator("#arterial-content")).to_contain_text("51.0")
     expect(page.locator("#arterial-content")).to_contain_text("41.8–59.8")
-    expect(page.locator("#arterial-content")).to_contain_text("Applicability is unassessed")
+    expect(page.locator("#narrative-content")).to_contain_text("Applicability is unassessed")
     assert page.locator("#estimated-plot .agreement-whisker").count() == 3
     assert page.locator("#known-plot .agreement-whisker").count() == 0
     page.locator("#methods-card summary").first.click()
@@ -404,6 +404,7 @@ def test_live_sample_policy_sensitivity_albumin_and_bmp_discrepancy(page, explor
             expect(page.locator("#narrative-content")).to_contain_text("not robust")
             expect(page.locator("#arterial-content")).to_contain_text("25.0 mmHg")
             assert page.locator("#estimated-plot .agreement-whisker").count() == 3
+            page.get_by_text("Provisional gas-only interpretation details", exact=True).click()
             page.get_by_text("Tested CO₂ scenarios", exact=True).click()
             for text in ("15.8 mmHg", "33.8 mmHg", "6.9 mmol/L", "14.8 mmol/L"):
                 expect(page.locator("#arterial-content")).to_contain_text(text)
@@ -462,7 +463,7 @@ def test_partial_shading_uses_only_usable_measured_axes(page, explorer_url, ph, 
         250 if axis == "ph" else 305
     )
     expect(page.locator("#known-plot")).to_contain_text(
-        "not a confidence region or guaranteed ABG bound"
+        "not a guaranteed bound or probability region"
     )
     assert page.locator("#estimated-plot .coordinate-point").count() == 0
     original = page.locator("#narrative-content").text_content()
@@ -471,7 +472,7 @@ def test_partial_shading_uses_only_usable_measured_axes(page, explorer_url, ph, 
         assert page.locator("#narrative-content").text_content() == original
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     if r.input_observations:
-        expect(page.locator("#input-observations")).to_contain_text("not been corrected")
+        expect(page.locator("#input-observations")).to_contain_text("finite arithmetic is retained")
     page.locator("#reset-button").click()
     assert page.locator("#input-observations").text_content() == ""
     assert page.locator("#known-plot").text_content() == ""

@@ -24,6 +24,10 @@ browser workflow or copy an upstream formula already exposed by the pinned depen
 - Keep measured gas coordinates, HH-derived coordinates, calculated venous SBE, and modeled
   arterial values separate. Supplied or HH-reconstructed gas coordinates may enter fixed/Farkas estimates; preserve the chain.
   Reconstructed coordinates never become independent measurements or physiology bounds.
+  Apply sanity warnings to supplied and HH-derived coordinates and propagate them only through
+  consumed dependencies. Keep finite arithmetic, but withhold affected provisional interpretation,
+  sensitivity and estimated paired plots. An unused flagged third coordinate must not taint a
+  usable supplied pair. Software sanity ranges are not clinical cutoffs.
 - Saturation is same-sample by field definition. Do not restore the clinical-context questionnaire;
   the only sample-context selector is Peripheral / Central / Unknown. Farkas uses saturation for Peripheral or conditionally Unknown; Central uses the fixed heuristic. Applicability remains explicitly unassessed. BE stays optional.
 - Coordinate plots display results only; their reference cross is not a diagnostic boundary.

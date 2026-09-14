@@ -14,7 +14,7 @@ from vbg_interpreter.evidence import METHODS
 from vbg_interpreter.information import highest_value_next_inputs
 from vbg_interpreter.models import CalculationStatus, VbgExplorerRequest, VbgExplorerResult
 from vbg_interpreter.narrative import build_narrative
-from vbg_interpreter.observations import input_observations, unreliable_axes
+from vbg_interpreter.observations import gas_observations, qualify_calculation, unreliable_axes
 from vbg_interpreter.physiology import direction_metadata
 from vbg_interpreter.screening import screening_result
 from vbg_interpreter.venous_gas import complete_venous_gas
@@ -24,24 +24,41 @@ def interpret_vbg(request: VbgExplorerRequest) -> VbgExplorerResult:
     if not isinstance(request, VbgExplorerRequest):
         raise TypeError("request must be VbgExplorerRequest.")
     gas = complete_venous_gas(request.current_vbg)
+    observations = gas_observations(request, gas)
+    gas = replace(
+        gas,
+        calculated_values={
+            k: qualify_calculation(c, observations, output_axis=k)
+            for k, c in gas.calculated_values.items()
+        },
+        consistency=qualify_calculation(gas.consistency, observations, output_axis="hco3"),
+        standard_base_excess=qualify_calculation(gas.standard_base_excess, observations),
+    )
     chemistry = calculate_chemistry(request, gas)
-    observations = input_observations(request)
     blocked = unreliable_axes(observations)
-    estimate = estimate_arterial_paco2(request, gas, blocked)
-    ph = estimate_arterial_ph(request, gas, blocked)
+    estimate = estimate_arterial_paco2(request, gas, observations)
+    ph = estimate_arterial_ph(request, gas, observations)
     hco3 = modeled_hco3(ph, estimate)
     direction = direction_metadata(request, observations)
     if "ph" in blocked:
         gas = replace(gas, ph_reference_position=None)
     chemistry["bmp_gas_bicarbonate_comparison"] = bicarbonate_comparison(request, blocked)
+    chemistry = {k: qualify_calculation(c, observations) for k, c in chemistry.items()}
+    hco3 = replace(
+        hco3,
+        input_warnings=tuple(
+            o for o in observations if o in ph.input_warnings or o in estimate.input_warnings
+        ),
+    )
     interpretation_ph = (
         replace(ph, status=CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT)
-        if blocked.intersection(ph.selection.source_field_ids)
+        if ph.status is CalculationStatus.AVAILABLE and not ph.selection.interpretation_suitable
         else ph
     )
     interpretation_co2 = (
         replace(estimate, status=CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT)
-        if blocked.intersection(estimate.selection.source_field_ids)
+        if estimate.status is CalculationStatus.AVAILABLE
+        and not estimate.selection.interpretation_suitable
         else estimate
     )
     provisional = assess_estimated_gas(interpretation_ph, interpretation_co2, hco3)

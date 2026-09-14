@@ -46,7 +46,7 @@ def test_strict_mapping_and_browser_adapter():
     payload = wire_request()
     assert request_from_mapping(payload).current_vbg.ph == 7.32
     response = json.loads(interpret_browser_request_json(json.dumps(payload)))
-    assert response["result"]["software_version"] == "0.6.0"
+    assert response["result"]["software_version"] == "0.6.1"
     assert response["result"]["venous_gas"]["measured_values"]["ph"]["value"] == 7.32
 
 

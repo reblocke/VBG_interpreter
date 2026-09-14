@@ -7,6 +7,7 @@ from vbg_interpreter.physiology import _boundary_display
 def build_narrative(request, ph, co2, provisional, sensitivity, direction, comparison):
     source = request.current_vbg
     parts = []
+    details = []
     if ph.status is CalculationStatus.AVAILABLE:
         parts.append(
             f"Estimated arterial pH {_boundary_display(ph.values['ph'], (7.35, 7.45), 2)} "
@@ -25,20 +26,15 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
         for field, axis in direction["axes"].items()
         if axis["status"] == CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT
     ]
-    if flagged:
-        parts.insert(
-            0,
-            "Measured " + "/".join(flagged) + " has an input sanity warning. "
-            "Available measurements and finite arithmetic remain below; "
-            "full gas interpretation is withheld.",
-        )
-    elif parts:
-        parts[0] = "The best-guess conversion shows " + parts[0][:1].lower() + parts[0][1:]
-    else:
+    if not parts:
         parts.append(
             "Available measured and calculated values are shown below; "
             "no arterial estimate is available."
         )
+    routes = list(
+        dict.fromkeys(c.route_label for c in (ph, co2) if c.status is CalculationStatus.AVAILABLE)
+    )
+    parts.extend(route + "." for route in routes)
     for component in (ph, co2):
         for limitation in component.limitations:
             if limitation.startswith(
@@ -49,31 +45,44 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
                     "Agreement interval is nonphysical",
                 )
             ):
-                parts.append(limitation)
+                details.append(limitation)
     if provisional.status is CalculationStatus.AVAILABLE:
         parts.append(
             "Provisional gas-only interpretation: "
             + provisional.assessment["primary_process_guess"]
             + "."
         )
-        parts.append(
+        details.append(
             (
                 provisional.assessment["modeled_vs_expected"][:1].upper()
                 + provisional.assessment["modeled_vs_expected"][1:]
             ).rstrip(".")
             + "."
         )
-    else:
+    elif provisional.status is CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT:
         parts.append(
-            "A complete provisional gas-only interpretation is unavailable: "
-            + provisional.status.value.lower().replace("_", " ")
-            + "."
+            "Provisional interpretation, sensitivity and the estimated paired plot are withheld "
+            "because a required source or HH-reconstructed coordinate has a sanity warning. "
+            "Finite arithmetic is retained."
         )
-    parts.extend(
-        [
-            sensitivity["summary"],
-            "Applicability is unassessed; clinical context and pH uncertainty remain unresolved.",
-        ]
+    else:
+        parts.append("A complete provisional gas-only interpretation is unavailable.")
+    short_sensitivity = {
+        "CHANGES": (
+            "The interpretation changes across tested CO2 scenarios; "
+            "the point is not robust to this variation."
+        ),
+        "NO_CHANGE_TESTED": (
+            "No change across tested CO2 scenarios; full robustness remains unassessed."
+        ),
+        "NOT_QUANTIFIED": "Robustness is not quantified for this input route.",
+        "INCOMPLETE": "CO2 sensitivity is incomplete.",
+    }.get(sensitivity["status"], "Gas-only sensitivity is unavailable.")
+    if provisional.status is not CalculationStatus.UNAVAILABLE_UNRELIABLE_INPUT:
+        parts.append(short_sensitivity)
+    parts.append("Applicability is unassessed.")
+    details.extend(
+        [sensitivity["summary"], "Clinical context and pH uncertainty remain unresolved."]
     )
     disagreement = []
     bound = direction["axes"]["pco2"]["bound"]
@@ -87,8 +96,8 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
                 "The CO2 agreement range extends outside the conditional physiology shading."
             )
     if disagreement:
-        parts.extend(disagreement)
-        parts.append(
+        details.extend(disagreement)
+        details.append(
             "The empirical estimate and conditional physiology model differ; "
             "values and ranges are retained without clipping."
         )
@@ -103,9 +112,41 @@ def build_narrative(request, ph, co2, provisional, sensitivity, direction, compa
         )
         if abs(v["bmp_minus_gas_hco3"]) > 10:
             chemistry_note += " Large discrepancy by the >10 mmol/L warning heuristic."
-    parts.append(chemistry_note)
+    details.append(chemistry_note)
     return {
         "best_guess": " ".join(parts),
-        "conditional_physiology": direction["assumption"] + " " + direction["summary"],
+        "conditional_physiology": (
+            (
+                "Sample type unknown; peripheral/systemic assumptions are unconfirmed. "
+                if source.sample_type.value == "UNKNOWN"
+                else ""
+            )
+            + (
+                "A supplied gas coordinate has a sanity warning; "
+                "only independent usable axes contribute. "
+                if flagged
+                else ""
+            )
+            + conditional_summary(direction)
+        ),
+        "details": details
+        + [direction["assumption"], direction["summary"], *direction["limitations"]],
         "model_disagreements": disagreement,
     }
+
+
+def conditional_summary(direction):
+    coordinates = []
+    ph, co2 = direction["axes"]["ph"], direction["axes"]["pco2"]
+    if ph["bound"] is not None:
+        coordinates.append("arterial pH ≥ " + ph["display_bound"])
+    if co2["bound"] is not None:
+        coordinates.append("0 < PaCO2 ≤ " + co2["display_bound"] + " mmHg")
+    if not coordinates:
+        return "No usable supplied gas coordinate supports a conditional direction."
+    return (
+        "Under usual steady-state tissue transit, "
+        + "; ".join(coordinates)
+        + ". These directions are not guaranteed bounds or probability regions; "
+        "mixed processes and chronicity remain unresolved."
+    )

@@ -62,9 +62,9 @@ def test_sample_selection_and_no_hidden_fallback(sample, sat):
     assert r.arterial_ph_estimate.values["ph"] == pytest.approx(7.36)
     assert r.arterial_paco2_estimate.values["point"] == pytest.approx(51.04 if farkas else 50)
     assert (r.arterial_paco2_estimate.agreement.status == "AVAILABLE") == farkas
-    assert ("Central sample:" in r.narrative["best_guess"]) == (sample is SampleType.CENTRAL)
+    assert ("Central sample:" in " ".join(r.narrative["details"])) == (sample is SampleType.CENTRAL)
     if sample is SampleType.UNKNOWN:
-        assert "illustrative systemic-venous" in r.narrative["conditional_physiology"]
+        assert "illustrative systemic-venous" in " ".join(r.narrative["details"])
         assert "Sample type not specified." in r.physiology_direction["caption"]
 
 
@@ -162,7 +162,7 @@ def test_supplied_or_hh_derived_coordinates_never_become_independent_bounds():
 )
 def test_unreliable_axes_suppress_only_dependent_interpretation(ph, co2, blocked):
     r = result(ph, co2, chemistry=CurrentChemistry(140, 100, 12))
-    assert {o["field"] for o in r.input_observations} == blocked
+    assert {o["field"] for o in r.input_observations if o["origin"] == "SUPPLIED"} == blocked
     for axis in ("ph", "pco2"):
         assert (r.physiology_direction["axes"][axis]["status"] == "AVAILABLE") == (
             axis not in blocked
@@ -217,7 +217,7 @@ def test_bmp_discrepancy_prefers_measured_pair_and_preserves_third_coordinate():
     assert comparison.values["gas_basis_hco3"] == pytest.approx(25.430265200293658, abs=1e-6)
     assert comparison.values["bmp_minus_gas_hco3"] == pytest.approx(-13.430265200293658, abs=1e-6)
     assert r.venous_gas.measured_values["hco3"]["value"] == 11
-    assert "Large discrepancy" in r.narrative["best_guess"]
+    assert "Large discrepancy" in " ".join(r.narrative["details"])
     assert r.chemistry["anion_gap"].values["anion_gap"] == 28
 
 
