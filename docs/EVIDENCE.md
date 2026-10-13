@@ -108,8 +108,8 @@ Farkas, Jörg, Bloom, Krbec, and CLSI provenance/rights notices remain in THIRD_
 
 ## Verification boundary
 
-The synthetic matrix checks arithmetic targets, units, gate decisions, provenance, local-domain
-refusals, independent partial results, partition closure, and deterministic contracts. Browser
+The focused synthetic regressions check arithmetic targets, units, gate decisions, provenance,
+local-domain refusals, independent partial results, and partition closure. Browser
 checks exercise the self-hosted runtime, privacy, accessibility, and progressive rendering.
 No validated local end-to-end VBG algorithm exists. Screening, prediction, compensation
 classification, and management equivalence remain separate scientific claims.

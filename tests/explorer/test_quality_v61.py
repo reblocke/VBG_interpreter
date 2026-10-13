@@ -1,8 +1,6 @@
 """Dependency-specific sanity warnings through the real strict/browser contract."""
 
-import json
 import math
-from copy import deepcopy
 
 import pytest
 from test_foundation import wire_request
@@ -10,81 +8,37 @@ from test_foundation import wire_request
 from vbg_interpreter import interpret_vbg
 from vbg_interpreter.mapping import request_from_mapping
 from vbg_interpreter.models import CurrentVbg, Pco2Unit, VbgExplorerRequest
-from vbg_interpreter.serialization import to_json
 
 
 def run(**fields):
     if "pco2" in fields:
         fields.setdefault("pco2_unit", Pco2Unit.MMHG)
     payload = wire_request(VbgExplorerRequest(CurrentVbg(**fields)))
-    original = deepcopy(payload)
     request = request_from_mapping(payload)
-    result = interpret_vbg(request)
-    serialized = to_json(result)
-    assert serialized == to_json(interpret_vbg(request))
-    assert payload == original
-    json.loads(serialized, parse_constant=lambda s: pytest.fail(s))
-    return result
+    return interpret_vbg(request)
 
 
-@pytest.mark.parametrize(
-    "fields,axis,expected,warning_field,origin",
-    [
-        (
-            {"ph": 7.32, "hco3_mmol_l": 270},
-            "pco2",
-            270 / (0.0307 * 10**1.225),
-            "pco2",
-            "HH_RECONSTRUCTED",
-        ),
-        (
-            {"ph": 7, "hco3_mmol_l": 95},
-            "pco2",
-            95 / (0.0307 * 10**0.905),
-            "pco2",
-            "HH_RECONSTRUCTED",
-        ),
-        ({"ph": 7.6, "hco3_mmol_l": 120}, "pco2", 120 / (0.0307 * 10**1.505), "hco3", "SUPPLIED"),
-        (
-            {"pco2": 55, "hco3_mmol_l": 120},
-            "ph",
-            6.095 + math.log10(120 / (0.0307 * 55)),
-            "hco3",
-            "SUPPLIED",
-        ),
-        (
-            {"pco2": 10, "hco3_mmol_l": 100},
-            "ph",
-            6.095 + math.log10(100 / 0.307),
-            "ph",
-            "HH_RECONSTRUCTED",
-        ),
-    ],
-)
-def test_chained_warning_retains_finite_numbers_without_classification(
-    fields, axis, expected, warning_field, origin
-):
-    r = run(**fields)
-    component = r.arterial_ph_estimate if axis == "ph" else r.arterial_paco2_estimate
+def test_chained_warning_retains_finite_numbers_without_classification():
+    # This reconstructed pH is out of range even though both supplied operands are in range.
+    r = run(pco2=10, hco3_mmol_l=100)
+    component = r.arterial_ph_estimate
     assert component.status == "AVAILABLE"
-    assert component.selection.source_value == pytest.approx(expected)
+    assert component.selection.source_value == pytest.approx(6.095 + math.log10(100 / 0.307))
     assert not component.selection.interpretation_suitable
     assert any(
-        o["field"] == warning_field and o["origin"] == origin for o in component.input_warnings
+        o["field"] == "ph" and o["origin"] == "HH_RECONSTRUCTED" for o in component.input_warnings
     )
     assert r.provisional_interpretation.status == "UNAVAILABLE_UNRELIABLE_INPUT"
     assert r.interpretation_sensitivity["status"] == "UNAVAILABLE_UNRELIABLE_INPUT"
-    supplied_axis = "pco2" if axis == "ph" else "ph"
-    assert r.physiology_direction["axes"][supplied_axis]["status"] == "AVAILABLE"
-    assert r.physiology_direction["axes"][axis]["status"] == "UNAVAILABLE_MISSING_INPUT"
+    assert r.physiology_direction["axes"]["pco2"]["status"] == "AVAILABLE"
+    assert r.physiology_direction["axes"]["ph"]["status"] == "UNAVAILABLE_MISSING_INPUT"
     assert r.venous_gas.standard_base_excess.status == "AVAILABLE"
 
 
-def test_unused_reported_bicarbonate_warning_does_not_taint_supplied_pair():
+def test_unused_reported_bicarbonate_warning_does_not_taint_sbe():
     r = run(ph=7.32, pco2=55, hco3_mmol_l=270)
-    assert r.provisional_interpretation.status == "AVAILABLE"
-    for c in (r.arterial_ph_estimate, r.arterial_paco2_estimate, r.venous_gas.standard_base_excess):
-        assert not c.input_warnings
+    # Browser assertions cover the arterial pair, but not SBE/comparator warning dependencies.
+    assert not r.venous_gas.standard_base_excess.input_warnings
     assert r.venous_gas.consistency.input_warnings
 
 
@@ -118,9 +72,9 @@ def test_inclusive_sanity_boundaries(axis, value):
     assert not r.input_observations
 
 
-@pytest.mark.parametrize("pressure_unit", list(Pco2Unit))
-def test_unit_normalization_retains_same_warning_and_original_input(pressure_unit):
-    value = 300 if pressure_unit is Pco2Unit.MMHG else 300 / 7.500616827041697
+def test_unit_normalization_retains_same_warning_and_original_input():
+    pressure_unit = Pco2Unit.KPA
+    value = 300 / 7.500616827041697
     r = run(pco2=value, pco2_unit=pressure_unit, hco3_mmol_l=25)
     assert any(o["field"] == "pco2" for o in r.arterial_ph_estimate.input_warnings)
     original = r.arterial_ph_estimate.selection.source_values["pco2"]
@@ -150,19 +104,3 @@ def test_dependency_qualifications_on_independent_arithmetic_and_reported_sbe():
         c = r.chemistry[key]
         assert c.status == "AVAILABLE"
         assert {o["field"] for o in c.input_warnings} == {"sodium"}
-
-
-def test_reviewer_farkas_example_retains_exact_point_and_fails_local_interpretation():
-    from vbg_interpreter.models import SaturationInput, SaturationUnit
-
-    r = run(
-        ph=7.32,
-        hco3_mmol_l=270,
-        venous_o2_saturation=SaturationInput(75, SaturationUnit.PERCENTAGE_POINTS),
-    )
-    c = r.arterial_paco2_estimate
-    assert c.values["point"] == pytest.approx(519.9122434945687, abs=1e-10)
-    assert c.method_id == "farkas_simplified_93_v1"
-    assert c.agreement.status == "NOT_QUANTIFIED"
-    assert r.arterial_ph_estimate.selection.interpretation_suitable
-    assert not c.selection.interpretation_suitable

@@ -63,6 +63,21 @@ Use these local skills where applicable:
 - `docs-sync` after behavior or commands change; and
 - `code-change-verification` before handoff.
 
+## Testing policy
+
+- Never write unit tests after you write code.
+- Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work.
+  At the end of E2E tests, produce a verifiable and repeatable artifact.
+- If you must test a system in isolation, first write down all the ways it could fail, then write
+  the code.
+
+Keep an isolated test only when it catches a concrete failure the existing E2E tests miss.
+Document that failure and the E2E coverage gap before writing the test. Avoid tests that mirror
+implementation details, freeze source text, or repeat behavior already exercised through E2E.
+`make e2e` saves a JUnit result report, Playwright traces, and screenshots under ignored
+`.build/e2e/`, including passing runs. Reproduce the artifacts with the locked dependencies and
+the same command; use only synthetic inputs.
+
 ## Commands
 
 ```bash
@@ -77,4 +92,4 @@ make serve
 ```
 
 `make verify` is the normal full local check. It stages the browser bundle, verifies the
-self-hosted Pyodide runtime, runs focused Python tests, and runs browser E2E smoke tests.
+self-hosted Pyodide runtime, runs the retained Python regressions, and runs browser E2E tests.
