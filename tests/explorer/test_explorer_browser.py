@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import socket
 import subprocess
 import sys
@@ -48,15 +49,26 @@ def explorer_url() -> Iterator[str]:
     assert WEB_BUILD_ROOT.is_dir()
 
     port = _free_port()
+    # The worker fetches package files concurrently; the default backlog of 5 resets connections.
+    server_code = """
+import sys
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer, test
+
+ThreadingHTTPServer.request_queue_size = 128
+test(
+    HandlerClass=partial(SimpleHTTPRequestHandler, directory=sys.argv[2]),
+    ServerClass=ThreadingHTTPServer,
+    port=int(sys.argv[1]),
+    bind="127.0.0.1",
+)
+"""
     process = subprocess.Popen(
         [
             sys.executable,
-            "-m",
-            "http.server",
+            "-c",
+            server_code,
             str(port),
-            "--bind",
-            "127.0.0.1",
-            "--directory",
             str(WEB_BUILD_ROOT),
         ],
         cwd=PROJECT_ROOT,
@@ -163,7 +175,19 @@ def test_live_pyodide_singletons_progressive_chemistry_and_sbe(page, explorer_ur
         page.locator("#reset-button").click()
         page.locator("#" + field).fill(value)
         _submit(page)
+        # Each singleton reveals its conditional unit/basis controls; check their actual names.
+        for control in page.locator(
+            "#explorer-form input:visible, #explorer-form select:visible"
+        ).all():
+            expect(control).to_have_accessible_name(re.compile(r"\S"))
         expect(page.locator("#venous-content")).to_contain_text(text)
+        # A lone observation cannot supply missing gas coordinates or a paired estimate.
+        expect(page.locator("#venous-content .metric")).to_have_count(1)
+        expect(page.locator("#arterial-content .metric")).to_have_count(
+            1 if field in {"current-ph", "current-pco2"} else 0
+        )
+        expect(page.locator("#estimated-plot .coordinate-point")).to_have_count(0)
+        expect(page.locator("#results-panel")).not_to_contain_text("outside the numerical domain")
         expect(page.locator("#chemistry-card")).to_be_hidden()
     page.locator("#reset-button").click()
     page.locator("#current-ph").fill("7.32")

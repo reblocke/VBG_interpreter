@@ -28,8 +28,16 @@ make verify
 ```
 
 The Python package is the calculation source of truth. Browser assets are generated into ignored
-`.build/web/`; do not commit generated Python packages. Include focused tests and update the
-relevant current-state documentation with every behavior or workflow change.
+`.build/web/`; do not commit generated Python packages. Follow the [testing policy](AGENTS.md#testing-policy):
+prefer E2E coverage, and retain isolated tests only for concrete failures the E2E suite misses.
+Write down the failure modes and any necessary unit tests before implementation. Update the
+relevant current-state documentation with behavior or workflow changes.
+
+Every `make e2e` run saves `.build/e2e/results.xml` plus a `trace.zip` and screenshot in each test's
+subdirectory, including passing tests. Rerun with the locked dependencies and the same command to
+reproduce the checks. Inspect a trace with `uv run playwright show-trace .build/e2e/<test-id>/trace.zip`.
+The traces contain actions, DOM snapshots, and network activity from synthetic inputs only. This
+directory is replaced on the next E2E run; `make test` and `make validation` leave it intact.
 
 Pull requests should explain the intended behavior, scientific and privacy boundaries, commands
 run, and remaining limitations. A passing test suite confirms implemented behavior; it does not
