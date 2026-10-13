@@ -65,5 +65,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Run synthetic scientific matrix
+      - name: Run focused scientific regressions
         run: make validation

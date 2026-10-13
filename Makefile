@@ -18,7 +18,7 @@ test: build-web
 	uv run pytest -q -m "not e2e"
 
 e2e: build-web
-	uv run pytest -q -m e2e --browser chromium --tracing retain-on-failure --video retain-on-failure --screenshot only-on-failure --output test-results
+	uv run pytest -q -m e2e --browser chromium --tracing on --video retain-on-failure --screenshot on --output .build/e2e --junitxml .build/e2e/results.xml
 
 validation: build-web
 	uv run pytest -q tests/explorer/test_scientific_matrix.py tests/explorer/test_best_guess.py tests/explorer/test_physiology_v5.py tests/explorer/test_selection_v6.py tests/explorer/test_quality_v61.py

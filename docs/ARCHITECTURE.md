@@ -60,9 +60,11 @@ intentionally unrelated history and remains private and archived. Do not merge p
 into public main. Pages verifies public visibility, required checks, the exact source commit,
 and the current main identity; the release manifest records the same reviewed source commit.
 
-`make verify` checks formatting, lint, Pyodide integrity, Python contracts, staging, and Chromium
-E2E. `make validation` runs the synthetic scientific capability matrix. Neither is clinical
-validation. Required CI job names remain `verify` and `validation`.
+`make verify` checks formatting, lint, Pyodide integrity, retained Python regressions, staging, and
+Chromium E2E. `make validation` runs focused numerical and provenance regressions for failures the
+browser suite does not cover. E2E runs retain a JUnit report, traces, and screenshots in `.build/e2e/`.
+See [the testing decision](adr/0009-e2e-first-testing.md) for the retention criteria. Neither check
+is clinical validation. Required CI job names remain `verify` and `validation`.
 
 In v0.6.1, observations identify supplied versus HH-derived origin and source fields. Calculation
 warnings are selected from consumed operand provenance; arterial suitability and route labels are
